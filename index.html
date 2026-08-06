@@ -87,8 +87,8 @@
           <h2 class="text-sm font-bold text-slate-800 mb-3 border-l-4 border-purple-500 pl-2">Projection</h2>
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm"><span class="text-[10px] font-bold uppercase text-slate-400 block">expected cutoff Q number to qualify</span><div id="val-cutoff-q" class="text-2xl font-black text-purple-600 mt-1">0</div></div>
-            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm"><span class="text-[10px] font-bold uppercase text-slate-400 block">Expected no of non-chinese selection until 694</span><div id="val-non-chinese" class="text-2xl font-black text-slate-800 mt-1">0</div></div>
-            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm"><span class="text-[10px] font-bold uppercase text-slate-400 block">% of selections that are Ch</span><div id="val-chinese-selection-pct" class="text-2xl font-black text-indigo-600 mt-1">0%</div></div>
+            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm"><span class="text-[10px] font-bold uppercase text-slate-400 block" id="label-non-chinese">Expected no of non-chinese selection until 694</span><div id="val-non-chinese" class="text-2xl font-black text-slate-800 mt-1">0</div></div>
+            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm"><span class="text-[10px] font-bold uppercase text-slate-400 block">% of selections that are Chinese</span><div id="val-chinese-selection-pct" class="text-2xl font-black text-indigo-600 mt-1">0%</div></div>
             <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm"><span class="text-[10px] font-bold uppercase text-slate-400 block">Chance Status</span><div class="mt-2"><span id="val-likely-pill" class="inline-block bg-slate-400 text-white font-bold text-xs px-3 py-1 rounded-md">Pending</span></div></div>
           </div>
         </section>
@@ -146,6 +146,8 @@
     const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRb0bt_1rAwFdIesV9SJLbueCX2H9y7UuXxeFwUrFIc51tqZeCggb4IEXNTXulJ9A/pub?gid=871082013&single=true&output=csv';
     let rawSheetData = [];
     let userHasManuallyEditedQ = false;
+    let baseNonChineseVal = 0;
+    let baseSheetQ = 694;
 
     function exactFind(row, targetHeader) {
       if (!row) return '-';
@@ -179,6 +181,7 @@
             const validRows = rawSheetData.filter(r => Object.values(r).some(v => v && v.toString().trim() !== ''));
             if (validRows.length > 0) {
               updateQueueOverview(validRows[validRows.length - 1]);
+              calculateTotalDropouts(validRows);
             }
           }
           document.getElementById('last-updated-time').innerText = new Date().toLocaleTimeString();
@@ -186,11 +189,34 @@
       });
     }
 
+    function calculateTotalDropouts(rows) {
+      let totalDropouts = 0;
+      let totalCalled = 0;
+      rows.forEach(row => {
+        const dropoutsVal = exactFind(row, 'No. of dropouts');
+        const calledVal = exactFind(row, 'Total called');
+        if (dropoutsVal !== '-') {
+          totalDropouts += parseInt(dropoutsVal) || 0;
+        }
+        if (calledVal !== '-') {
+          totalCalled += parseInt(calledVal) || 0;
+        }
+      });
+
+      document.getElementById('overview-total-dropouts').innerText = totalDropouts;
+      const dropoutRate = totalCalled > 0 ? ((totalDropouts / totalCalled) * 100).toFixed(2) + '%' : '0%';
+      document.getElementById('overview-dropout-rate').innerText = dropoutRate;
+    }
+
     function updateQueueOverview(row) {
       const qInput = document.getElementById('input-your-q');
+      const sheetQVal = exactFind(row, 'Your Q Number');
+      if (sheetQVal !== '-') {
+        baseSheetQ = parseInt(sheetQVal) || 694;
+      }
+
       if (!userHasManuallyEditedQ) {
-        const sheetQ = exactFind(row, 'Your Q Number');
-        if (sheetQ !== '-') qInput.value = parseInt(sheetQ) || 694;
+        qInput.value = baseSheetQ;
       }
 
       document.getElementById('val-current-q').innerText = exactFind(row, 'Current Q number');
@@ -203,7 +229,10 @@
       document.getElementById('chinese-progress-bar').style.width = chineseFilled.includes('%') ? chineseFilled : chineseFilled + '%';
 
       document.getElementById('val-cutoff-q').innerText = exactFind(row, 'expected cutoff Q number to qualify');
-      document.getElementById('val-non-chinese').innerText = exactFind(row, 'Expected no of non-chinese selection until 694');
+      
+      const rawNonChinese = exactFind(row, 'Expected no of non-chinese selection until 694');
+      baseNonChineseVal = rawNonChinese !== '-' ? (parseFloat(rawNonChinese) || 0) : 0;
+
       document.getElementById('val-chinese-selection-pct').innerText = exactFind(row, '% of selections that are Ch');
 
       const status = exactFind(row, 'Likely/Unlikely based on 694');
@@ -223,6 +252,13 @@
       const qAhead = Math.max(0, yourQ - currentQ);
       document.getElementById('val-q-ahead').innerText = qAhead;
       document.getElementById('val-progress').innerText = yourQ > 0 ? ((currentQ / yourQ) * 100).toFixed(6) + '%' : '0%';
+
+      // Recalculate Expected non-chinese selection dynamically based on user's Q input
+      const diffQ = yourQ - baseSheetQ;
+      const calculatedNonChinese = Math.max(0, Math.round(baseNonChineseVal + (diffQ * 0.1312))); 
+      document.getElementById('val-non-chinese').innerText = calculatedNonChinese;
+      document.getElementById('label-non-chinese').innerText = `Expected no of non-chinese selection until ${yourQ}`;
+
       recalculateScenario();
     }
 

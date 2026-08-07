@@ -32,9 +32,10 @@
     <div id="tab-queue" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
       <div class="lg:col-span-8 space-y-6">
         
+        <!-- Queue Statistics -->
         <section>
           <h2 class="text-sm font-bold text-slate-800 mb-3 border-l-4 border-blue-500 pl-2">Queue Statistics</h2>
-          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             <div class="bg-white p-3.5 rounded-xl border-2 border-blue-200 shadow-sm">
               <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Your Q Number ✏️</span>
               <input type="number" id="input-your-q" value="694" oninput="updateQueueCalculations()" class="w-full text-xl font-black text-blue-600 bg-transparent focus:outline-none mt-1" />
@@ -48,47 +49,53 @@
               <div id="val-q-ahead" class="text-xl font-black text-orange-500 mt-1">0</div>
             </div>
             <div class="bg-white p-3.5 rounded-xl border border-slate-100 shadow-sm">
-              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">progress %</span>
-              <div id="val-progress" class="text-xl font-black text-emerald-500 mt-1">0%</div>
-            </div>
-            <div class="bg-white p-3.5 rounded-xl border border-slate-100 shadow-sm">
-              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Dropouts</span>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Current Total Dropouts</span>
               <div id="overview-total-dropouts" class="text-xl font-black text-rose-600 mt-1">0</div>
             </div>
             <div class="bg-white p-3.5 rounded-xl border border-slate-100 shadow-sm">
-              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Dropout Rate</span>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Overall Dropout Rate</span>
               <div id="overview-dropout-rate" class="text-xl font-black text-amber-500 mt-1">0%</div>
             </div>
           </div>
         </section>
 
+        <!-- Ethnic Quota Remaining -->
         <section>
-          <h2 class="text-sm font-bold text-slate-800 mb-3 border-l-4 border-emerald-500 pl-2">Basic Stats</h2>
+          <h2 class="text-sm font-bold text-slate-800 mb-3 border-l-4 border-emerald-500 pl-2">Ethnic Quota Remaining</h2>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div class="bg-white p-4 rounded-xl border-t-4 border-t-red-500 border-x border-b border-slate-100 shadow-sm space-y-3">
-              <span class="text-[11px] font-bold uppercase text-slate-400 block">Total chinese left</span>
+              <span class="text-[11px] font-bold uppercase text-slate-400 block">Total Chinese Left</span>
               <div class="flex items-baseline gap-1"><span id="val-chinese-left" class="text-3xl font-black text-red-500">0</span><span class="text-xs text-slate-400">units left</span></div>
               <div class="pt-2 border-t border-slate-100 text-xs flex justify-between"><span class="text-[10px] text-slate-400 uppercase">%Chinese filled</span><span id="val-chinese-filled-pct" class="font-bold text-red-600">0%</span></div>
               <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden"><div id="chinese-progress-bar" class="bg-red-500 h-full rounded-full" style="width: 0%;"></div></div>
             </div>
             <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
-              <span class="text-[11px] font-bold uppercase text-slate-400 block">Total Malay left</span>
+              <span class="text-[11px] font-bold uppercase text-slate-400 block">Total Malay Left</span>
               <div class="mt-1"><span id="val-malay-left" class="text-3xl font-black text-emerald-500">0</span><span class="text-xs text-slate-400 block mt-0.5">units left</span></div>
             </div>
             <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
-              <span class="text-[11px] font-bold uppercase text-slate-400 block">Total Indian/others left</span>
+              <span class="text-[11px] font-bold uppercase text-slate-400 block">Total Indian/Others Left</span>
               <div class="mt-1"><span id="val-indian-left" class="text-3xl font-black text-purple-600">0</span><span class="text-xs text-slate-400 block mt-0.5">units left</span></div>
             </div>
           </div>
         </section>
 
+        <!-- Projection -->
         <section>
           <h2 class="text-sm font-bold text-slate-800 mb-3 border-l-4 border-purple-500 pl-2">Projection</h2>
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm"><span class="text-[10px] font-bold uppercase text-slate-400 block">expected cutoff Q number to qualify</span><div id="val-cutoff-q" class="text-2xl font-black text-purple-600 mt-1">0</div></div>
-            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm"><span class="text-[10px] font-bold uppercase text-slate-400 block" id="label-non-chinese">Expected no of non-chinese selection until 694</span><div id="val-non-chinese" class="text-2xl font-black text-slate-800 mt-1">0</div></div>
-            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm"><span class="text-[10px] font-bold uppercase text-slate-400 block">% of selections that are Chinese</span><div id="val-chinese-selection-pct" class="text-2xl font-black text-indigo-600 mt-1">0%</div></div>
-            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm"><span class="text-[10px] font-bold uppercase text-slate-400 block">Chance Status</span><div class="mt-2"><span id="val-likely-pill" class="inline-block bg-slate-400 text-white font-bold text-xs px-3 py-1 rounded-md">Pending</span></div></div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+              <span class="text-[10px] font-bold uppercase text-slate-400 block">expected cutoff Q number to qualify</span>
+              <div id="val-cutoff-q" class="text-2xl font-black text-purple-600 mt-1">0</div>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+              <span class="text-[10px] font-bold uppercase text-slate-400 block">% of selections that are Chinese</span>
+              <div id="val-chinese-selection-pct" class="text-2xl font-black text-indigo-600 mt-1">0%</div>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+              <span class="text-[10px] font-bold uppercase text-slate-400 block">Chance Status</span>
+              <div class="mt-2"><span id="val-likely-pill" class="inline-block bg-slate-400 text-white font-bold text-xs px-3 py-1 rounded-md">Pending</span></div>
+            </div>
           </div>
         </section>
       </div>
@@ -144,9 +151,12 @@
   <script>
     const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRb0bt_1rAwFdIesV9SJLbueCX2H9y7UuXxeFwUrFIc51tqZeCggb4IEXNTXulJ9A/pub?gid=871082013&single=true&output=csv';
     let rawSheetMatrix = [];
-    let userHasManuallyEditedQ = false;
-    let baseNonChineseVal = 0;
-    let baseSheetQ = 694;
+    
+    // Globals derived from calculations
+    let calculatedPctChineseSelection = 0;
+    let sumChineseTaken = 0;
+    let sumTotalCalled = 0;
+    let sumTotalDropouts = 0;
 
     function switchTab(tabId) {
       document.getElementById('tab-queue').classList.add('hidden');
@@ -163,17 +173,14 @@
       }
     }
 
-    // Searches full matrix cell by cell for a label and returns adjacent value
     function findMatrixValue(matrix, targetLabel) {
       const cleanTarget = targetLabel.trim().toLowerCase();
       for (let r = 0; r < matrix.length; r++) {
         for (let c = 0; c < matrix[r].length; c++) {
           if (matrix[r][c] && matrix[r][c].toString().trim().toLowerCase() === cleanTarget) {
-            // Check right neighbor cell
             if (c + 1 < matrix[r].length && matrix[r][c + 1] !== '') {
               return matrix[r][c + 1].toString().trim();
             }
-            // Check lower neighbor cell
             if (r + 1 < matrix.length && matrix[r + 1][c] !== '') {
               return matrix[r + 1][c].toString().trim();
             }
@@ -186,7 +193,7 @@
     function loadData() {
       Papa.parse(GOOGLE_SHEET_CSV_URL, {
         download: true,
-        header: false, // Parse as raw 2D array matrix to handle custom layouts
+        header: false,
         skipEmptyLines: false,
         complete: function(results) {
           rawSheetMatrix = results.data;
@@ -199,31 +206,18 @@
     }
 
     function parseCustomSheetMatrix(matrix) {
-      // 1. Parse Key Metrics
-      const sheetQVal = findMatrixValue(matrix, 'Your Q Number');
-      if (sheetQVal !== '-') baseSheetQ = parseInt(sheetQVal) || 694;
+      // 1. Pull Direct Spreadsheet Metrics
+      const currentQVal = findMatrixValue(matrix, 'Current Q number');
+      document.getElementById('val-current-q').innerText = currentQVal !== '-' ? currentQVal : '0';
 
-      if (!userHasManuallyEditedQ) {
-        document.getElementById('input-your-q').value = baseSheetQ;
-      }
+      const sheetTotalDropouts = findMatrixValue(matrix, 'Total Dropouts');
+      document.getElementById('overview-total-dropouts').innerText = sheetTotalDropouts !== '-' ? sheetTotalDropouts : '0';
 
-      document.getElementById('val-current-q').innerText = findMatrixValue(matrix, 'Current Q number');
       document.getElementById('val-chinese-left').innerText = findMatrixValue(matrix, 'Total chinese left');
       document.getElementById('val-malay-left').innerText = findMatrixValue(matrix, 'Total Malay left');
       document.getElementById('val-indian-left').innerText = findMatrixValue(matrix, 'Total Indian/others left');
 
-      const chineseFilled = findMatrixValue(matrix, '%Chinese filled');
-      document.getElementById('val-chinese-filled-pct').innerText = chineseFilled;
-      document.getElementById('chinese-progress-bar').style.width = chineseFilled.includes('%') ? chineseFilled : (chineseFilled !== '-' ? chineseFilled + '%' : '0%');
-
-      document.getElementById('val-cutoff-q').innerText = findMatrixValue(matrix, 'expected cutoff Q number to qualify');
-
-      const rawNonChinese = findMatrixValue(matrix, 'Expected no of non-chinese selection until 694');
-      baseNonChineseVal = rawNonChinese !== '-' ? (parseFloat(rawNonChinese) || 0) : 0;
-
-      document.getElementById('val-chinese-selection-pct').innerText = findMatrixValue(matrix, '% of selections that are Ch');
-
-      // 2. Locate Main Table (Headers on Row 10 in sheet)
+      // 2. Parse Daily Log Table to calculate sums
       let tableHeaderRowIndex = -1;
       for (let r = 0; r < matrix.length; r++) {
         if (matrix[r].some(cell => cell && cell.toString().toLowerCase().includes('date of flat booking'))) {
@@ -236,16 +230,19 @@
         const headers = matrix[tableHeaderRowIndex];
         const calledColIdx = headers.findIndex(h => h && h.toString().toLowerCase().includes('total called'));
         const dropoutColIdx = headers.findIndex(h => h && h.toString().toLowerCase().includes('dropout'));
+        const chineseTakenColIdx = headers.findIndex(h => h && h.toString().toLowerCase().includes('no. of chinese taken'));
 
-        let totalCalledSum = 0;
-        let totalDropoutsSum = 0;
+        sumTotalCalled = 0;
+        sumTotalDropouts = 0;
+        sumChineseTaken = 0;
 
-        // Render Table Headers & Rows
+        // Populate Table Header
         let thHTML = '<tr class="bg-slate-50 text-slate-500 border-b">';
         headers.forEach(h => { if(h) thHTML += `<th class="p-3 font-semibold">${h}</th>`; });
         thHTML += '</tr>';
         document.getElementById('tableHeader').innerHTML = thHTML;
 
+        // Iterate Table Rows
         let tbodyHTML = '';
         for (let r = tableHeaderRowIndex + 1; r < matrix.length; r++) {
           const row = matrix[r];
@@ -257,38 +254,52 @@
           }
           tbodyHTML += '</tr>';
 
-          if (calledColIdx !== -1 && row[calledColIdx]) totalCalledSum += parseInt(row[calledColIdx]) || 0;
-          if (dropoutColIdx !== -1 && row[dropoutColIdx]) totalDropoutsSum += parseInt(row[dropoutColIdx]) || 0;
+          if (calledColIdx !== -1 && row[calledColIdx]) sumTotalCalled += parseInt(row[calledColIdx]) || 0;
+          if (dropoutColIdx !== -1 && row[dropoutColIdx]) sumTotalDropouts += parseInt(row[dropoutColIdx]) || 0;
+          if (chineseTakenColIdx !== -1 && row[chineseTakenColIdx]) sumChineseTaken += parseInt(row[chineseTakenColIdx]) || 0;
         }
         document.getElementById('tableBody').innerHTML = tbodyHTML;
 
-        document.getElementById('overview-total-dropouts').innerText = totalDropoutsSum;
-        const dropoutPct = totalCalledSum > 0 ? ((totalDropoutsSum / totalCalledSum) * 100).toFixed(2) + '%' : '0%';
-        document.getElementById('overview-dropout-rate').innerText = dropoutPct;
+        // Overall dropout rate = Sum of dropouts / Total called
+        const overallDropoutRate = sumTotalCalled > 0 ? ((sumTotalDropouts / sumTotalCalled) * 100).toFixed(2) + '%' : '0%';
+        document.getElementById('overview-dropout-rate').innerText = overallDropoutRate;
+
+        // %Chinese filled = Sum of No. of chinese taken / 441
+        const chineseFilledPctVal = ((sumChineseTaken / 441) * 100).toFixed(2);
+        document.getElementById('val-chinese-filled-pct').innerText = chineseFilledPctVal + '%';
+        document.getElementById('chinese-progress-bar').style.width = chineseFilledPctVal + '%';
+
+        // % of selections that are Chinese = Sum of No. of chinese taken / Total called
+        calculatedPctChineseSelection = sumTotalCalled > 0 ? (sumChineseTaken / sumTotalCalled) : 0;
+        document.getElementById('val-chinese-selection-pct').innerText = (calculatedPctChineseSelection * 100).toFixed(2) + '%';
       }
 
       updateQueueCalculations();
     }
 
     function updateQueueCalculations() {
-      userHasManuallyEditedQ = true;
       const yourQ = parseInt(document.getElementById('input-your-q').value) || 0;
       const currentQ = parseInt(document.getElementById('val-current-q').innerText) || 0;
       const chineseLeft = parseInt(document.getElementById('val-chinese-left').innerText) || 0;
 
+      // No. of Q ahead = Your Q Number - Current Q Number
       const qAhead = Math.max(0, yourQ - currentQ);
       document.getElementById('val-q-ahead').innerText = qAhead;
-      document.getElementById('val-progress').innerText = yourQ > 0 ? ((currentQ / yourQ) * 100).toFixed(6) + '%' : '0%';
 
-      const diffQ = yourQ - baseSheetQ;
-      const calculatedNonChinese = Math.max(0, Math.round(baseNonChineseVal + (diffQ * 0.1312))); 
-      document.getElementById('val-non-chinese').innerText = calculatedNonChinese;
-      document.getElementById('label-non-chinese').innerText = `Expected no of non-chinese selection until ${yourQ}`;
+      // Expected cutoff Q number to qualify = Current Q number + CEIL(Total chinese left / % of selections that are Chinese)
+      const expectedCutoffQ = calculatedPctChineseSelection > 0 
+        ? currentQ + Math.ceil(chineseLeft / calculatedPctChineseSelection) 
+        : currentQ;
+      document.getElementById('val-cutoff-q').innerText = expectedCutoffQ;
 
-      const expectedChineseSelections = Math.max(0, yourQ - calculatedNonChinese);
+      // Hidden Expected Non-Chinese Selections = No. of Q ahead * (100% - % Chinese Selections)
+      const expectedNonChineseSelections = qAhead * (1 - calculatedPctChineseSelection);
+
+      // Chance Status: IF (No. of Q ahead - Expected Non-Chinese Selections) < Total Chinese Left -> Likely
+      const expectedChineseSelectionsAhead = qAhead - expectedNonChineseSelections;
       const pill = document.getElementById('val-likely-pill');
 
-      if (expectedChineseSelections <= chineseLeft) {
+      if (expectedChineseSelectionsAhead < chineseLeft) {
         pill.innerText = 'Likely';
         pill.className = 'inline-block bg-emerald-500 text-white font-bold text-xs px-3 py-1 rounded-md';
       } else {

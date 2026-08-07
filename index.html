@@ -6,7 +6,6 @@
   <title>SBF Tracker</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-slate-50 text-slate-800 p-4 sm:p-6 min-h-screen">
   <div class="max-w-7xl mx-auto space-y-6">
@@ -133,7 +132,7 @@
         <h3 class="font-bold text-slate-800 text-xs uppercase mb-3">Daily Booking Log</h3>
         <div class="overflow-x-auto">
           <table class="w-full text-left border-collapse text-xs">
-            <thead><tr class="bg-slate-50 text-slate-500 border-b"><th class="p-3">Data Loaded Successfully</th></tr></thead>
+            <thead id="tableHeader"><tr class="bg-slate-50 text-slate-500 border-b"><th class="p-3">Loading Data...</th></tr></thead>
             <tbody id="tableBody"></tbody>
           </table>
         </div>
@@ -144,16 +143,10 @@
 
   <script>
     const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRb0bt_1rAwFdIesV9SJLbueCX2H9y7UuXxeFwUrFIc51tqZeCggb4IEXNTXulJ9A/pub?gid=871082013&single=true&output=csv';
-    let rawSheetData = [];
+    let rawSheetMatrix = [];
     let userHasManuallyEditedQ = false;
     let baseNonChineseVal = 0;
     let baseSheetQ = 694;
-
-    function exactFind(row, targetHeader) {
-      if (!row) return '-';
-      const key = Object.keys(row).find(k => k.trim().toLowerCase() === targetHeader.trim().toLowerCase());
-      return key && row[key] !== '' && row[key] !== undefined ? row[key] : '-';
-    }
 
     function switchTab(tabId) {
       document.getElementById('tab-queue').classList.add('hidden');
@@ -170,70 +163,109 @@
       }
     }
 
+    // Searches full matrix cell by cell for a label and returns adjacent value
+    function findMatrixValue(matrix, targetLabel) {
+      const cleanTarget = targetLabel.trim().toLowerCase();
+      for (let r = 0; r < matrix.length; r++) {
+        for (let c = 0; c < matrix[r].length; c++) {
+          if (matrix[r][c] && matrix[r][c].toString().trim().toLowerCase() === cleanTarget) {
+            // Check right neighbor cell
+            if (c + 1 < matrix[r].length && matrix[r][c + 1] !== '') {
+              return matrix[r][c + 1].toString().trim();
+            }
+            // Check lower neighbor cell
+            if (r + 1 < matrix.length && matrix[r + 1][c] !== '') {
+              return matrix[r + 1][c].toString().trim();
+            }
+          }
+        }
+      }
+      return '-';
+    }
+
     function loadData() {
       Papa.parse(GOOGLE_SHEET_CSV_URL, {
         download: true,
-        header: true,
-        skipEmptyLines: 'greedy',
+        header: false, // Parse as raw 2D array matrix to handle custom layouts
+        skipEmptyLines: false,
         complete: function(results) {
-          rawSheetData = results.data;
-          if (rawSheetData && rawSheetData.length > 0) {
-            const validRows = rawSheetData.filter(r => Object.values(r).some(v => v && v.toString().trim() !== ''));
-            if (validRows.length > 0) {
-              updateQueueOverview(validRows[validRows.length - 1]);
-              calculateTotalDropouts(validRows);
-            }
+          rawSheetMatrix = results.data;
+          if (rawSheetMatrix && rawSheetMatrix.length > 0) {
+            parseCustomSheetMatrix(rawSheetMatrix);
           }
           document.getElementById('last-updated-time').innerText = new Date().toLocaleTimeString();
         }
       });
     }
 
-    function calculateTotalDropouts(rows) {
-      let totalDropouts = 0;
-      let totalCalled = 0;
-      rows.forEach(row => {
-        const dropoutsVal = exactFind(row, 'No. of dropouts');
-        const calledVal = exactFind(row, 'Total called');
-        if (dropoutsVal !== '-') {
-          totalDropouts += parseInt(dropoutsVal) || 0;
-        }
-        if (calledVal !== '-') {
-          totalCalled += parseInt(calledVal) || 0;
-        }
-      });
-
-      document.getElementById('overview-total-dropouts').innerText = totalDropouts;
-      const dropoutRate = totalCalled > 0 ? ((totalDropouts / totalCalled) * 100).toFixed(2) + '%' : '0%';
-      document.getElementById('overview-dropout-rate').innerText = dropoutRate;
-    }
-
-    function updateQueueOverview(row) {
-      const qInput = document.getElementById('input-your-q');
-      const sheetQVal = exactFind(row, 'Your Q Number');
-      if (sheetQVal !== '-') {
-        baseSheetQ = parseInt(sheetQVal) || 694;
-      }
+    function parseCustomSheetMatrix(matrix) {
+      // 1. Parse Key Metrics
+      const sheetQVal = findMatrixValue(matrix, 'Your Q Number');
+      if (sheetQVal !== '-') baseSheetQ = parseInt(sheetQVal) || 694;
 
       if (!userHasManuallyEditedQ) {
-        qInput.value = baseSheetQ;
+        document.getElementById('input-your-q').value = baseSheetQ;
       }
 
-      document.getElementById('val-current-q').innerText = exactFind(row, 'Current Q number');
-      document.getElementById('val-chinese-left').innerText = exactFind(row, 'Total chinese left');
-      document.getElementById('val-malay-left').innerText = exactFind(row, 'Total Malay left');
-      document.getElementById('val-indian-left').innerText = exactFind(row, 'Total Indian/others left');
-      
-      const chineseFilled = exactFind(row, '%Chinese filled');
-      document.getElementById('val-chinese-filled-pct').innerText = chineseFilled;
-      document.getElementById('chinese-progress-bar').style.width = chineseFilled.includes('%') ? chineseFilled : chineseFilled + '%';
+      document.getElementById('val-current-q').innerText = findMatrixValue(matrix, 'Current Q number');
+      document.getElementById('val-chinese-left').innerText = findMatrixValue(matrix, 'Total chinese left');
+      document.getElementById('val-malay-left').innerText = findMatrixValue(matrix, 'Total Malay left');
+      document.getElementById('val-indian-left').innerText = findMatrixValue(matrix, 'Total Indian/others left');
 
-      document.getElementById('val-cutoff-q').innerText = exactFind(row, 'expected cutoff Q number to qualify');
-      
-      const rawNonChinese = exactFind(row, 'Expected no of non-chinese selection until 694');
+      const chineseFilled = findMatrixValue(matrix, '%Chinese filled');
+      document.getElementById('val-chinese-filled-pct').innerText = chineseFilled;
+      document.getElementById('chinese-progress-bar').style.width = chineseFilled.includes('%') ? chineseFilled : (chineseFilled !== '-' ? chineseFilled + '%' : '0%');
+
+      document.getElementById('val-cutoff-q').innerText = findMatrixValue(matrix, 'expected cutoff Q number to qualify');
+
+      const rawNonChinese = findMatrixValue(matrix, 'Expected no of non-chinese selection until 694');
       baseNonChineseVal = rawNonChinese !== '-' ? (parseFloat(rawNonChinese) || 0) : 0;
 
-      document.getElementById('val-chinese-selection-pct').innerText = exactFind(row, '% of selections that are Ch');
+      document.getElementById('val-chinese-selection-pct').innerText = findMatrixValue(matrix, '% of selections that are Ch');
+
+      // 2. Locate Main Table (Headers on Row 10 in sheet)
+      let tableHeaderRowIndex = -1;
+      for (let r = 0; r < matrix.length; r++) {
+        if (matrix[r].some(cell => cell && cell.toString().toLowerCase().includes('date of flat booking'))) {
+          tableHeaderRowIndex = r;
+          break;
+        }
+      }
+
+      if (tableHeaderRowIndex !== -1) {
+        const headers = matrix[tableHeaderRowIndex];
+        const calledColIdx = headers.findIndex(h => h && h.toString().toLowerCase().includes('total called'));
+        const dropoutColIdx = headers.findIndex(h => h && h.toString().toLowerCase().includes('dropout'));
+
+        let totalCalledSum = 0;
+        let totalDropoutsSum = 0;
+
+        // Render Table Headers & Rows
+        let thHTML = '<tr class="bg-slate-50 text-slate-500 border-b">';
+        headers.forEach(h => { if(h) thHTML += `<th class="p-3 font-semibold">${h}</th>`; });
+        thHTML += '</tr>';
+        document.getElementById('tableHeader').innerHTML = thHTML;
+
+        let tbodyHTML = '';
+        for (let r = tableHeaderRowIndex + 1; r < matrix.length; r++) {
+          const row = matrix[r];
+          if (!row || !row.some(c => c && c.toString().trim() !== '')) continue;
+
+          tbodyHTML += '<tr class="border-b border-slate-100 hover:bg-slate-50/50">';
+          for (let c = 0; c < headers.length; c++) {
+            if (headers[c]) tbodyHTML += `<td class="p-3">${row[c] !== undefined ? row[c] : ''}</td>`;
+          }
+          tbodyHTML += '</tr>';
+
+          if (calledColIdx !== -1 && row[calledColIdx]) totalCalledSum += parseInt(row[calledColIdx]) || 0;
+          if (dropoutColIdx !== -1 && row[dropoutColIdx]) totalDropoutsSum += parseInt(row[dropoutColIdx]) || 0;
+        }
+        document.getElementById('tableBody').innerHTML = tbodyHTML;
+
+        document.getElementById('overview-total-dropouts').innerText = totalDropoutsSum;
+        const dropoutPct = totalCalledSum > 0 ? ((totalDropoutsSum / totalCalledSum) * 100).toFixed(2) + '%' : '0%';
+        document.getElementById('overview-dropout-rate').innerText = dropoutPct;
+      }
 
       updateQueueCalculations();
     }
@@ -248,14 +280,11 @@
       document.getElementById('val-q-ahead').innerText = qAhead;
       document.getElementById('val-progress').innerText = yourQ > 0 ? ((currentQ / yourQ) * 100).toFixed(6) + '%' : '0%';
 
-      // Dynamic calculation of non-chinese selections based on your Q input
       const diffQ = yourQ - baseSheetQ;
       const calculatedNonChinese = Math.max(0, Math.round(baseNonChineseVal + (diffQ * 0.1312))); 
       document.getElementById('val-non-chinese').innerText = calculatedNonChinese;
       document.getElementById('label-non-chinese').innerText = `Expected no of non-chinese selection until ${yourQ}`;
 
-      // Dynamic calculation of Likely/Unlikely status
-      // Rule: (Your Q - Expected non-Chinese) vs Remaining Chinese Quota
       const expectedChineseSelections = Math.max(0, yourQ - calculatedNonChinese);
       const pill = document.getElementById('val-likely-pill');
 

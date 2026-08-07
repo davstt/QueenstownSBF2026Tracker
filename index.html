@@ -235,13 +235,6 @@
 
       document.getElementById('val-chinese-selection-pct').innerText = exactFind(row, '% of selections that are Ch');
 
-      const status = exactFind(row, 'Likely/Unlikely based on 694');
-      const pill = document.getElementById('val-likely-pill');
-      pill.innerText = status;
-      pill.className = status.toLowerCase().includes('likely') && !status.toLowerCase().includes('unlikely')
-        ? 'inline-block bg-emerald-500 text-white font-bold text-xs px-3 py-1 rounded-md' 
-        : 'inline-block bg-red-500 text-white font-bold text-xs px-3 py-1 rounded-md';
-
       updateQueueCalculations();
     }
 
@@ -249,15 +242,30 @@
       userHasManuallyEditedQ = true;
       const yourQ = parseInt(document.getElementById('input-your-q').value) || 0;
       const currentQ = parseInt(document.getElementById('val-current-q').innerText) || 0;
+      const chineseLeft = parseInt(document.getElementById('val-chinese-left').innerText) || 0;
+
       const qAhead = Math.max(0, yourQ - currentQ);
       document.getElementById('val-q-ahead').innerText = qAhead;
       document.getElementById('val-progress').innerText = yourQ > 0 ? ((currentQ / yourQ) * 100).toFixed(6) + '%' : '0%';
 
-      // Recalculate Expected non-chinese selection dynamically based on user's Q input
+      // Dynamic calculation of non-chinese selections based on your Q input
       const diffQ = yourQ - baseSheetQ;
       const calculatedNonChinese = Math.max(0, Math.round(baseNonChineseVal + (diffQ * 0.1312))); 
       document.getElementById('val-non-chinese').innerText = calculatedNonChinese;
       document.getElementById('label-non-chinese').innerText = `Expected no of non-chinese selection until ${yourQ}`;
+
+      // Dynamic calculation of Likely/Unlikely status
+      // Rule: (Your Q - Expected non-Chinese) vs Remaining Chinese Quota
+      const expectedChineseSelections = Math.max(0, yourQ - calculatedNonChinese);
+      const pill = document.getElementById('val-likely-pill');
+
+      if (expectedChineseSelections <= chineseLeft) {
+        pill.innerText = 'Likely';
+        pill.className = 'inline-block bg-emerald-500 text-white font-bold text-xs px-3 py-1 rounded-md';
+      } else {
+        pill.innerText = 'Unlikely';
+        pill.className = 'inline-block bg-red-500 text-white font-bold text-xs px-3 py-1 rounded-md';
+      }
 
       recalculateScenario();
     }

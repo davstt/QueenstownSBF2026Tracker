@@ -113,17 +113,14 @@
               <div class="flex justify-between text-xs font-semibold text-slate-600 mb-1"><span>Daily Called Rate</span><span id="slider-booking-val" class="text-slate-400">15 called/day</span></div>
               <input type="range" id="slider-booking" min="5" max="50" value="15" oninput="recalculateScenario()" class="w-full accent-blue-600 bg-slate-100 h-1.5 rounded-lg">
             </div>
-            <div>
-              <div class="flex justify-between text-xs font-semibold text-slate-600 mb-1"><span>Chinese Applicant Mix</span><span id="slider-mix-val" class="text-slate-400">95%</span></div>
-              <input type="range" id="slider-mix" min="50" max="100" value="95" oninput="recalculateScenario()" class="w-full accent-blue-600 bg-slate-100 h-1.5 rounded-lg">
-            </div>
           </div>
           <div class="pt-3 border-t border-slate-100 space-y-3">
             <div class="flex justify-between items-baseline">
               <div><span class="text-[10px] font-bold uppercase text-slate-400">Adjusted Q Ahead</span><div id="sim-q-ahead" class="text-3xl font-black text-slate-900 mt-0.5">0</div></div>
-              <div class="text-right"><span class="text-[10px] font-bold uppercase text-slate-400">Est. Days</span><div id="sim-est-days" class="text-lg font-bold text-blue-600">~0</div></div>
+              <div class="text-right"><span class="text-[10px] font-bold uppercase text-slate-400">Est. Working Days</span><div id="sim-est-days" class="text-lg font-bold text-blue-600">~0</div></div>
             </div>
             <div class="bg-slate-50 p-3 rounded-xl border text-xs space-y-2">
+              <div class="flex justify-between"><span>Est. Call-up Date</span><span id="sim-est-date" class="font-bold text-blue-600">-</span></div>
               <div class="flex justify-between"><span>Est. Chinese Ahead</span><span id="sim-chinese-ahead" class="font-bold">0</span></div>
               <div class="flex justify-between"><span>Additional Quota</span><span id="sim-add-quota" class="font-bold text-emerald-600">+0</span></div>
               <div class="flex justify-between items-center pt-2 border-t"><span class="font-bold">Status</span><span id="sim-status-pill" class="bg-slate-400 text-white font-bold text-[10px] uppercase px-2.5 py-1 rounded">Pending</span></div>
@@ -152,7 +149,6 @@
     const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRb0bt_1rAwFdIesV9SJLbueCX2H9y7UuXxeFwUrFIc51tqZeCggb4IEXNTXulJ9A/pub?gid=871082013&single=true&output=csv';
     let rawSheetMatrix = [];
     
-    // Globals derived from calculations
     let calculatedPctChineseSelection = 0;
     let sumChineseTaken = 0;
     let sumTotalCalled = 0;
@@ -190,6 +186,18 @@
       return '-';
     }
 
+    function addBusinessDays(startDate, days) {
+      let currentDate = new Date(startDate);
+      let addedDays = 0;
+      while (addedDays < days) {
+        currentDate.setDate(currentDate.getDate() + 1);
+        if (currentDate.getDay() !== 0 && currentDate.getDay() !== 6) {
+          addedDays++;
+        }
+      }
+      return currentDate;
+    }
+
     function loadData() {
       Papa.parse(GOOGLE_SHEET_CSV_URL, {
         download: true,
@@ -206,11 +214,15 @@
     }
 
     function parseCustomSheetMatrix(matrix) {
-      // 1. Pull Direct Spreadsheet Metrics
+      // 1. Pull Direct Spreadsheet Summary Values
       const currentQVal = findMatrixValue(matrix, 'Current Q number');
       document.getElementById('val-current-q').innerText = currentQVal !== '-' ? currentQVal : '0';
 
-      const sheetTotalDropouts = findMatrixValue(matrix, 'Total Dropouts');
+      // Look up "Current Total Dropouts" (or fallback to "Total Dropouts")
+      let sheetTotalDropouts = findMatrixValue(matrix, 'Current Total Dropouts');
+      if (sheetTotalDropouts === '-') {
+        sheetTotalDropouts = findMatrixValue(matrix, 'Total Dropouts');
+      }
       document.getElementById('overview-total-dropouts').innerText = sheetTotalDropouts !== '-' ? sheetTotalDropouts : '0';
 
       document.getElementById('val-chinese-left').innerText = findMatrixValue(matrix, 'Total chinese left');
@@ -236,13 +248,11 @@
         sumTotalDropouts = 0;
         sumChineseTaken = 0;
 
-        // Populate Table Header
         let thHTML = '<tr class="bg-slate-50 text-slate-500 border-b">';
         headers.forEach(h => { if(h) thHTML += `<th class="p-3 font-semibold">${h}</th>`; });
         thHTML += '</tr>';
         document.getElementById('tableHeader').innerHTML = thHTML;
 
-        // Iterate Table Rows
         let tbodyHTML = '';
         for (let r = tableHeaderRowIndex + 1; r < matrix.length; r++) {
           const row = matrix[r];
@@ -313,22 +323,26 @@
     function recalculateScenario() {
       const dropRate = parseInt(document.getElementById('slider-dropout').value);
       const dailyCalledRate = parseInt(document.getElementById('slider-booking').value);
-      const mixPct = parseInt(document.getElementById('slider-mix').value);
 
       document.getElementById('slider-dropout-val').innerText = dropRate + '%';
       document.getElementById('slider-booking-val').innerText = dailyCalledRate + ' called/day';
-      document.getElementById('slider-mix-val').innerText = mixPct + '%';
 
       const qAheadRaw = parseInt(document.getElementById('val-q-ahead').innerText) || 0;
       const chineseLeft = parseInt(document.getElementById('val-chinese-left').innerText) || 0;
 
       const adjustedQAhead = Math.round(qAheadRaw * (1 - (dropRate / 100)));
-      const chineseAhead = Math.round(adjustedQAhead * (mixPct / 100));
+      const chineseAhead = Math.round(adjustedQAhead * calculatedPctChineseSelection);
       const estDays = Math.round(adjustedQAhead / (dailyCalledRate || 1));
+      
+      // Calculate Projected Call-Up Date
+      const projectedDate = addBusinessDays(new Date(), estDays);
+      const formattedDate = projectedDate.toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' });
+
       const additionalQuota = Math.max(0, Math.round(chineseLeft * 0.15));
 
       document.getElementById('sim-q-ahead').innerText = adjustedQAhead;
-      document.getElementById('sim-est-days').innerText = '~' + estDays;
+      document.getElementById('sim-est-days').innerText = '~' + estDays + ' days';
+      document.getElementById('sim-est-date').innerText = formattedDate;
       document.getElementById('sim-chinese-ahead').innerText = chineseAhead;
       document.getElementById('sim-add-quota').innerText = '+' + additionalQuota;
 

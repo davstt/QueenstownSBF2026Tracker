@@ -130,14 +130,34 @@
       </div>
     </div>
 
-    <!-- TAB 2 -->
+    <!-- TAB 2: PROJECT BREAKDOWN -->
     <div id="tab-breakdown" class="space-y-6 hidden">
-      <section class="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden p-4">
-        <h3 class="font-bold text-slate-800 text-xs uppercase mb-3">Daily Booking Log</h3>
-        <div class="overflow-x-auto">
+      <!-- Summary Cards by Project -->
+      <section>
+        <h2 class="text-sm font-bold text-slate-800 mb-3 border-l-4 border-cyan-500 pl-2">Total Units Selected by Project</h2>
+        <div id="project-cards-container" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+          <!-- Dynamically Populated Project Cards -->
+        </div>
+      </section>
+
+      <!-- Daily Log Table -->
+      <section class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden p-5">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+            <span>📅</span> Daily Selection & Unit Breakdown Log
+          </h3>
+          <div class="flex items-center gap-3 text-xs font-semibold">
+            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Booking Stats</span>
+            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-cyan-500"></span> Projects</span>
+          </div>
+        </div>
+        <div class="overflow-x-auto rounded-xl border border-slate-100">
           <table class="w-full text-left border-collapse text-xs">
-            <thead id="tableHeader"><tr class="bg-slate-50 text-slate-500 border-b"><th class="p-3">Loading Data...</th></tr></thead>
+            <thead id="tableHeader">
+              <tr class="bg-slate-50 text-slate-500 border-b"><th class="p-3">Loading Data...</th></tr>
+            </thead>
             <tbody id="tableBody"></tbody>
+            <tfoot id="tableFooter" class="bg-slate-100 font-bold text-slate-800 border-t-2 border-slate-200"></tfoot>
           </table>
         </div>
       </section>
@@ -153,6 +173,8 @@
     let sumChineseTaken = 0;
     let sumTotalCalled = 0;
     let sumTotalDropouts = 0;
+
+    const KNOWN_PROJECT_KEYS = ['gm natura', 'gm ascent', 'up vista', 'up glades', 'th cascadia', 'qc', 'qa'];
 
     function switchTab(tabId) {
       document.getElementById('tab-queue').classList.add('hidden');
@@ -214,11 +236,9 @@
     }
 
     function parseCustomSheetMatrix(matrix) {
-      // 1. Pull Direct Spreadsheet Summary Values
       const currentQVal = findMatrixValue(matrix, 'Current Q number');
       document.getElementById('val-current-q').innerText = currentQVal !== '-' ? currentQVal : '0';
 
-      // Look up "Current Total Dropouts" (or fallback to "Total Dropouts")
       let sheetTotalDropouts = findMatrixValue(matrix, 'Current Total Dropouts');
       if (sheetTotalDropouts === '-') {
         sheetTotalDropouts = findMatrixValue(matrix, 'Total Dropouts');
@@ -229,7 +249,7 @@
       document.getElementById('val-malay-left').innerText = findMatrixValue(matrix, 'Total Malay left');
       document.getElementById('val-indian-left').innerText = findMatrixValue(matrix, 'Total Indian/others left');
 
-      // 2. Parse Daily Log Table to calculate sums
+      // Locate Main Table
       let tableHeaderRowIndex = -1;
       for (let r = 0; r < matrix.length; r++) {
         if (matrix[r].some(cell => cell && cell.toString().toLowerCase().includes('date of flat booking'))) {
@@ -248,19 +268,56 @@
         sumTotalDropouts = 0;
         sumChineseTaken = 0;
 
-        let thHTML = '<tr class="bg-slate-50 text-slate-500 border-b">';
-        headers.forEach(h => { if(h) thHTML += `<th class="p-3 font-semibold">${h}</th>`; });
+        // Map Column Categories
+        const projectColumnIndices = [];
+        const columnTotals = new Array(headers.length).fill(0);
+
+        let thHTML = '<tr class="bg-slate-100 text-slate-700 border-b">';
+        headers.forEach((h, colIdx) => {
+          if (!h) return;
+          const cleanH = h.toString().trim().toLowerCase();
+          const isProject = KNOWN_PROJECT_KEYS.some(pk => cleanH.includes(pk));
+          
+          if (isProject) projectColumnIndices.push(colIdx);
+
+          let bgStyle = "bg-slate-100 text-slate-600";
+          if (isProject) bgStyle = "bg-cyan-50 text-cyan-800 font-bold border-x border-cyan-100";
+          else if (cleanH.includes('called') || cleanH.includes('booked') || cleanH.includes('taken')) bgStyle = "bg-emerald-50 text-emerald-800 font-bold";
+
+          thHTML += `<th class="p-3 whitespace-nowrap text-xs uppercase tracking-wider ${bgStyle}">${h}</th>`;
+        });
         thHTML += '</tr>';
         document.getElementById('tableHeader').innerHTML = thHTML;
 
+        // Iterate Rows & Generate Visual Cells
         let tbodyHTML = '';
         for (let r = tableHeaderRowIndex + 1; r < matrix.length; r++) {
           const row = matrix[r];
           if (!row || !row.some(c => c && c.toString().trim() !== '')) continue;
 
-          tbodyHTML += '<tr class="border-b border-slate-100 hover:bg-slate-50/50">';
+          tbodyHTML += '<tr class="border-b border-slate-100 hover:bg-slate-50/80 transition-colors">';
           for (let c = 0; c < headers.length; c++) {
-            if (headers[c]) tbodyHTML += `<td class="p-3">${row[c] !== undefined ? row[c] : ''}</td>`;
+            if (!headers[c]) continue;
+            
+            const cellValRaw = row[c] !== undefined ? row[c].toString().trim() : '';
+            const cellValNum = parseInt(cellValRaw) || 0;
+            columnTotals[c] += cellValNum;
+
+            const isProjectCol = projectColumnIndices.includes(c);
+            let cellHTML = cellValRaw;
+
+            // Highlight unit counts cleanly
+            if (isProjectCol) {
+              if (cellValNum > 0) {
+                cellHTML = `<span class="inline-flex items-center justify-center font-bold px-2 py-0.5 rounded-md bg-cyan-100 text-cyan-800">${cellValNum}</span>`;
+              } else {
+                cellHTML = `<span class="text-slate-300">-</span>`;
+              }
+            } else if (c === dropoutColIdx && cellValNum > 0) {
+              cellHTML = `<span class="inline-flex items-center justify-center font-bold px-2 py-0.5 rounded-md bg-rose-100 text-rose-700">${cellValNum}</span>`;
+            }
+
+            tbodyHTML += `<td class="p-3 whitespace-nowrap text-center ${isProjectCol ? 'border-x border-slate-50' : ''}">${cellHTML}</td>`;
           }
           tbodyHTML += '</tr>';
 
@@ -270,16 +327,32 @@
         }
         document.getElementById('tableBody').innerHTML = tbodyHTML;
 
-        // Overall dropout rate = Sum of dropouts / Total called
+        // Render Table Footer Totals
+        let tfootHTML = '<tr class="bg-slate-100 text-slate-800 font-extrabold">';
+        headers.forEach((h, colIdx) => {
+          if (!h) return;
+          if (colIdx === 0) {
+            tfootHTML += `<td class="p-3 text-center uppercase tracking-wider text-xs">Total Units Selected</td>`;
+          } else {
+            tfootHTML += `<td class="p-3 text-center">${columnTotals[colIdx] || 0}</td>`;
+          }
+        });
+        tfootHTML += '</tr>';
+        document.getElementById('tableFooter').innerHTML = tfootHTML;
+
+        // Populate Project Visual Cards
+        renderProjectCards(headers, columnTotals, projectColumnIndices);
+
+        // Overall dropout rate
         const overallDropoutRate = sumTotalCalled > 0 ? ((sumTotalDropouts / sumTotalCalled) * 100).toFixed(2) + '%' : '0%';
         document.getElementById('overview-dropout-rate').innerText = overallDropoutRate;
 
-        // %Chinese filled = Sum of No. of chinese taken / 441
+        // %Chinese filled
         const chineseFilledPctVal = ((sumChineseTaken / 441) * 100).toFixed(2);
         document.getElementById('val-chinese-filled-pct').innerText = chineseFilledPctVal + '%';
         document.getElementById('chinese-progress-bar').style.width = chineseFilledPctVal + '%';
 
-        // % of selections that are Chinese = Sum of No. of chinese taken / Total called
+        // % Chinese selection
         calculatedPctChineseSelection = sumTotalCalled > 0 ? (sumChineseTaken / sumTotalCalled) : 0;
         document.getElementById('val-chinese-selection-pct').innerText = (calculatedPctChineseSelection * 100).toFixed(2) + '%';
       }
@@ -287,25 +360,49 @@
       updateQueueCalculations();
     }
 
+    function renderProjectCards(headers, columnTotals, projectIndices) {
+      const container = document.getElementById('project-cards-container');
+      let cardsHTML = '';
+
+      let grandProjectSum = 0;
+      projectIndices.forEach(idx => grandProjectSum += (columnTotals[idx] || 0));
+
+      projectIndices.forEach(idx => {
+        const projectName = headers[idx];
+        const unitsTaken = columnTotals[idx] || 0;
+        const sharePct = grandProjectSum > 0 ? ((unitsTaken / grandProjectSum) * 100).toFixed(1) : 0;
+
+        cardsHTML += `
+          <div class="bg-white p-3.5 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between space-y-2">
+            <span class="text-[10px] font-bold uppercase text-slate-400 truncate block">${projectName}</span>
+            <div class="flex items-baseline justify-between">
+              <span class="text-2xl font-black text-cyan-700">${unitsTaken}</span>
+              <span class="text-[10px] font-bold text-slate-400">${sharePct}%</span>
+            </div>
+            <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+              <div class="bg-cyan-500 h-full rounded-full" style="width: ${sharePct}%;"></div>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = cardsHTML;
+    }
+
     function updateQueueCalculations() {
       const yourQ = parseInt(document.getElementById('input-your-q').value) || 0;
       const currentQ = parseInt(document.getElementById('val-current-q').innerText) || 0;
       const chineseLeft = parseInt(document.getElementById('val-chinese-left').innerText) || 0;
 
-      // No. of Q ahead = Your Q Number - Current Q Number
       const qAhead = Math.max(0, yourQ - currentQ);
       document.getElementById('val-q-ahead').innerText = qAhead;
 
-      // Expected cutoff Q number to qualify = Current Q number + CEIL(Total chinese left / % of selections that are Chinese)
       const expectedCutoffQ = calculatedPctChineseSelection > 0 
         ? currentQ + Math.ceil(chineseLeft / calculatedPctChineseSelection) 
         : currentQ;
       document.getElementById('val-cutoff-q').innerText = expectedCutoffQ;
 
-      // Hidden Expected Non-Chinese Selections = No. of Q ahead * (100% - % Chinese Selections)
       const expectedNonChineseSelections = qAhead * (1 - calculatedPctChineseSelection);
-
-      // Chance Status: IF (No. of Q ahead - Expected Non-Chinese Selections) < Total Chinese Left -> Likely
       const expectedChineseSelectionsAhead = qAhead - expectedNonChineseSelections;
       const pill = document.getElementById('val-likely-pill');
 
@@ -334,7 +431,6 @@
       const chineseAhead = Math.round(adjustedQAhead * calculatedPctChineseSelection);
       const estDays = Math.round(adjustedQAhead / (dailyCalledRate || 1));
       
-      // Calculate Projected Call-Up Date
       const projectedDate = addBusinessDays(new Date(), estDays);
       const formattedDate = projectedDate.toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' });
 

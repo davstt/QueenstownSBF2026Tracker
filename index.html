@@ -65,7 +65,6 @@
           <div class="pr-8 flex-1">
             <div id="tab1-units-selected" class="text-4xl font-black text-slate-900">0</div>
             <div class="text-sm font-bold text-slate-800 mt-1">selected</div>
-            <div class="text-xs text-slate-400">latest census</div>
           </div>
           <div class="pl-8 flex-1">
             <div id="tab1-units-remaining" class="text-4xl font-black text-slate-900">710</div>
@@ -160,7 +159,6 @@
         <div class="pr-8 flex-1">
           <div id="tab2-units-selected" class="text-4xl font-black text-slate-900">0</div>
           <div class="text-sm font-bold text-slate-800 mt-1">selected</div>
-          <div class="text-xs text-slate-400">latest census</div>
         </div>
         <div class="pl-8 flex-1">
           <div id="tab2-units-remaining" class="text-4xl font-black text-slate-900">710</div>
@@ -206,6 +204,7 @@
     
     let calculatedPctChineseSelection = 0;
     let liveDropoutRateVal = 0;
+    let averageDailyCalledRate = 15;
     let sumChineseTaken = 0;
     let sumTotalCalled = 0;
     let sumTotalDropouts = 0;
@@ -322,6 +321,7 @@
         sumTotalCalled = 0;
         sumTotalDropouts = 0;
         sumChineseTaken = 0;
+        let validDailyCountDays = 0;
 
         const projectColumnIndices = [];
         const columnTotals = new Array(headers.length).fill(0);
@@ -344,10 +344,16 @@
             columnTotals[c] += cellValNum;
           }
 
-          if (calledColIdx !== -1 && row[calledColIdx]) sumTotalCalled += parseInt(row[calledColIdx]) || 0;
+          if (calledColIdx !== -1 && row[calledColIdx]) {
+            const calledVal = parseInt(row[calledColIdx]) || 0;
+            sumTotalCalled += calledVal;
+            if (calledVal > 0) validDailyCountDays++;
+          }
           if (dropoutColIdx !== -1 && row[dropoutColIdx]) sumTotalDropouts += parseInt(row[dropoutColIdx]) || 0;
           if (chineseTakenColIdx !== -1 && row[chineseTakenColIdx]) sumChineseTaken += parseInt(row[chineseTakenColIdx]) || 0;
         }
+
+        averageDailyCalledRate = validDailyCountDays > 0 ? Math.round(sumTotalCalled / validDailyCountDays) : 15;
 
         renderProjectCards(headers, columnTotals, projectColumnIndices);
         renderProjectChart(headers, columnTotals, projectColumnIndices);
@@ -498,6 +504,7 @@
 
       document.getElementById('slider-chinese-pct').value = liveChinesePctRounded;
       document.getElementById('slider-dropout').value = liveDropoutRounded;
+      document.getElementById('slider-booking').value = averageDailyCalledRate;
       recalculateScenario();
     }
 

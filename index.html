@@ -104,11 +104,20 @@
       <!-- Right Sidebar Scenario -->
       <div class="lg:col-span-4">
         <div class="bg-white p-5 rounded-2xl border border-blue-100 shadow-sm space-y-5 sticky top-6">
-          <h3 class="text-sm font-bold text-slate-900">What-if Scenario</h3>
+          <div class="flex justify-between items-center">
+            <h3 class="text-sm font-bold text-slate-900">What-if Scenario</h3>
+            <button onclick="resetScenarioSliders()" class="text-[11px] font-semibold text-blue-600 hover:text-blue-800 hover:underline transition">
+              Reset to Live Data
+            </button>
+          </div>
           <div class="space-y-4 pt-1">
             <div>
               <div class="flex justify-between text-xs font-semibold text-slate-600 mb-1"><span>Drop-out Rate</span><span id="slider-dropout-val" class="text-slate-400">15%</span></div>
               <input type="range" id="slider-dropout" min="0" max="40" value="15" oninput="recalculateScenario()" class="w-full accent-blue-600 bg-slate-100 h-1.5 rounded-lg">
+            </div>
+            <div>
+              <div class="flex justify-between text-xs font-semibold text-slate-600 mb-1"><span>Chinese Booking Rate</span><span id="slider-chinese-pct-val" class="text-slate-400">60%</span></div>
+              <input type="range" id="slider-chinese-pct" min="0" max="100" value="60" oninput="recalculateScenario()" class="w-full accent-blue-600 bg-slate-100 h-1.5 rounded-lg">
             </div>
             <div>
               <div class="flex justify-between text-xs font-semibold text-slate-600 mb-1"><span>Daily Called Rate</span><span id="slider-booking-val" class="text-slate-400">15 called/day</span></div>
@@ -168,6 +177,7 @@
     let projectDoughnutChart = null;
     
     let calculatedPctChineseSelection = 0;
+    let liveDropoutRateVal = 0;
     let sumChineseTaken = 0;
     let sumTotalCalled = 0;
     let sumTotalDropouts = 0;
@@ -304,29 +314,28 @@
         renderProjectCards(headers, columnTotals, projectColumnIndices);
         renderProjectChart(headers, columnTotals, projectColumnIndices);
 
-        const overallDropoutRate = sumTotalCalled > 0 ? ((sumTotalDropouts / sumTotalCalled) * 100).toFixed(2) + '%' : '0%';
-        document.getElementById('overview-dropout-rate').innerText = overallDropoutRate;
+        liveDropoutRateVal = sumTotalCalled > 0 ? (sumTotalDropouts / sumTotalCalled) * 100 : 0;
+        document.getElementById('overview-dropout-rate').innerText = liveDropoutRateVal.toFixed(2) + '%';
 
         const chineseFilledPctVal = ((sumChineseTaken / 441) * 100).toFixed(2);
         document.getElementById('val-chinese-filled-pct').innerText = chineseFilledPctVal + '%';
         document.getElementById('chinese-progress-bar').style.width = chineseFilledPctVal + '%';
 
-        // Read direct value from sheet cell next to "% of numbers called booked as Chinese"
         const directChineseBookedPct = findMatrixValue(matrix, '% of numbers called booked as Chinese');
         
         if (directChineseBookedPct !== '-') {
           let numVal = parseFloat(directChineseBookedPct.replace('%', ''));
           if (!isNaN(numVal)) {
             calculatedPctChineseSelection = numVal > 1 ? numVal / 100 : numVal;
-            document.getElementById('val-chinese-selection-pct').innerText = (calculatedPctChineseSelection * 100).toFixed(2) + '%';
           } else {
             calculatedPctChineseSelection = sumTotalCalled > 0 ? (sumChineseTaken / sumTotalCalled) : 0;
-            document.getElementById('val-chinese-selection-pct').innerText = (calculatedPctChineseSelection * 100).toFixed(2) + '%';
           }
         } else {
           calculatedPctChineseSelection = sumTotalCalled > 0 ? (sumChineseTaken / sumTotalCalled) : 0;
-          document.getElementById('val-chinese-selection-pct').innerText = (calculatedPctChineseSelection * 100).toFixed(2) + '%';
         }
+        document.getElementById('val-chinese-selection-pct').innerText = (calculatedPctChineseSelection * 100).toFixed(2) + '%';
+
+        resetScenarioSliders();
       }
 
       updateQueueCalculations();
@@ -445,18 +454,30 @@
       recalculateScenario();
     }
 
+    function resetScenarioSliders() {
+      const liveChinesePctRounded = Math.round(calculatedPctChineseSelection * 100);
+      const liveDropoutRounded = Math.round(liveDropoutRateVal) || 15;
+
+      document.getElementById('slider-chinese-pct').value = liveChinesePctRounded;
+      document.getElementById('slider-dropout').value = liveDropoutRounded;
+      recalculateScenario();
+    }
+
     function recalculateScenario() {
       const dropRate = parseInt(document.getElementById('slider-dropout').value);
+      const chineseRatePct = parseInt(document.getElementById('slider-chinese-pct').value);
       const dailyCalledRate = parseInt(document.getElementById('slider-booking').value);
 
       document.getElementById('slider-dropout-val').innerText = dropRate + '%';
+      document.getElementById('slider-chinese-pct-val').innerText = chineseRatePct + '%';
       document.getElementById('slider-booking-val').innerText = dailyCalledRate + ' called/day';
 
       const qAheadRaw = parseInt(document.getElementById('val-q-ahead').innerText) || 0;
       const chineseLeft = parseInt(document.getElementById('val-chinese-left').innerText) || 0;
 
+      const simPctChinese = chineseRatePct / 100;
       const adjustedQAhead = Math.round(qAheadRaw * (1 - (dropRate / 100)));
-      const chineseAhead = Math.round(adjustedQAhead * calculatedPctChineseSelection);
+      const chineseAhead = Math.round(adjustedQAhead * simPctChinese);
       const estDays = Math.round(adjustedQAhead / (dailyCalledRate || 1));
       
       const projectedDate = addBusinessDays(new Date(), estDays);

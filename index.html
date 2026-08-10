@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SBF Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 p-4 sm:p-6 min-h-screen">
+  <div class="max-w-7xl mx-auto space-y-6">
+
+    <header class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900 flex items-center gap-2">SBF Tracker</h1>
+        <p class="text-slate-500 text-sm flex items-center gap-1 mt-0.5"><span>🗄️</span> Live Queenstown 4-Rm Ballot Dashboard</p>
+      </div>
+      <div class="flex items-center gap-4 text-xs font-medium text-slate-500">
+        <span class="flex items-center gap-1"><span>🕒</span> Updated <span id="last-updated-time">--:--:--</span></span>
+        <button onclick="loadData()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-xl shadow-sm transition flex items-center gap-1.5 text-sm">
+          Refresh
+        </button>
+      </div>
+    </header>
+
+    <div class="inline-flex bg-slate-200/60 p-1 rounded-xl text-xs font-semibold">
+      <button id="tab-btn-1" onclick="switchTab('tab-queue')" class="px-5 py-2 rounded-lg bg-white text-slate-800 shadow-sm transition">Queue & Projections</button>
+      <button id="tab-btn-2" onclick="switchTab('tab-breakdown')" class="px-5 py-2 rounded-lg text-slate-500 hover:text-slate-800 transition">Project Breakdown</button>
+    </div>
+
+    <!-- TAB 1 -->
+    <div id="tab-queue" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div class="lg:col-span-8 space-y-6">
+        
+        <!-- Queue Statistics -->
+        <section>
+          <h2 class="text-sm font-bold text-slate-800 mb-3 border-l-4 border-blue-500 pl-2">Queue Statistics</h2>
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            <div class="bg-white p-3.5 rounded-xl border-2 border-blue-200 shadow-sm">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Your Q Number ✏️</span>
+              <input type="number" id="input-your-q" value="694" oninput="updateQueueCalculations()" class="w-full text-xl font-black text-blue-600 bg-transparent focus:outline-none mt-1" />
+            </div>
+            <div class="bg-white p-3.5 rounded-xl border border-slate-100 shadow-sm">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Current Q number</span>
+              <div id="val-current-q" class="text-xl font-black text-slate-800 mt-1">0</div>
+            </div>
+            <div class="bg-white p-3.5 rounded-xl border border-slate-100 shadow-sm">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">no. of q ahead</span>
+              <div id="val-q-ahead" class="text-xl font-black text-orange-500 mt-1">0</div>
+            </div>
+            <div class="bg-white p-3.5 rounded-xl border border-slate-100 shadow-sm">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Current Total Dropouts</span>
+              <div id="overview-total-dropouts" class="text-xl font-black text-rose-600 mt-1">0</div>
+            </div>
+            <div class="bg-white p-3.5 rounded-xl border border-slate-100 shadow-sm">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Overall Dropout Rate</span>
+              <div id="overview-dropout-rate" class="text-xl font-black text-amber-500 mt-1">0%</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Ethnic Quota Remaining -->
+        <section>
+          <h2 class="text-sm font-bold text-slate-800 mb-3 border-l-4 border-emerald-500 pl-2">Ethnic Quota Remaining</h2>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="bg-white p-4 rounded-xl border-t-4 border-t-red-500 border-x border-b border-slate-100 shadow-sm space-y-3">
+              <span class="text-[11px] font-bold uppercase text-slate-400 block">Total Chinese Left</span>
+              <div class="flex items-baseline gap-1"><span id="val-chinese-left" class="text-3xl font-black text-red-500">0</span><span class="text-xs text-slate-400">units left</span></div>
+              <div class="pt-2 border-t border-slate-100 text-xs flex justify-between"><span class="text-[10px] text-slate-400 uppercase">%Chinese filled</span><span id="val-chinese-filled-pct" class="font-bold text-red-600">0%</span></div>
+              <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden"><div id="chinese-progress-bar" class="bg-red-500 h-full rounded-full" style="width: 0%;"></div></div>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+              <span class="text-[11px] font-bold uppercase text-slate-400 block">Total Malay Left</span>
+              <div class="mt-1"><span id="val-malay-left" class="text-3xl font-black text-emerald-500">0</span><span class="text-xs text-slate-400 block mt-0.5">units left</span></div>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+              <span class="text-[11px] font-bold uppercase text-slate-400 block">Total Indian/Others Left</span>
+              <div class="mt-1"><span id="val-indian-left" class="text-3xl font-black text-purple-600">0</span><span class="text-xs text-slate-400 block mt-0.5">units left</span></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Projection -->
+        <section>
+          <h2 class="text-sm font-bold text-slate-800 mb-3 border-l-4 border-purple-500 pl-2">Projection</h2>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+              <span class="text-[10px] font-bold uppercase text-slate-400 block">expected cutoff Q number to qualify</span>
+              <div id="val-cutoff-q" class="text-2xl font-black text-purple-600 mt-1">0</div>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+              <span class="text-[10px] font-bold uppercase text-slate-400 block">% of numbers called booked as Chinese</span>
+              <div id="val-chinese-selection-pct" class="text-2xl font-black text-indigo-600 mt-1">0%</div>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+              <span class="text-[10px] font-bold uppercase text-slate-400 block">Current Likelihood</span>
+              <div class="mt-2"><span id="val-likely-pill" class="inline-block bg-slate-400 text-white font-bold text-xs px-3 py-1 rounded-md">Pending</span></div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Right Sidebar Scenario -->
+      <div class="lg:col-span-4">
+        <div class="bg-white p-5 rounded-2xl border border-blue-100 shadow-sm space-y-5 sticky top-6">
+          <h3 class="text-sm font-bold text-slate-900">What-if Scenario</h3>
+          <div class="space-y-4 pt-1">
+            <div>
+              <div class="flex justify-between text-xs font-semibold text-slate-600 mb-1"><span>Drop-out Rate</span><span id="slider-dropout-val" class="text-slate-400">15%</span></div>
+              <input type="range" id="slider-dropout" min="0" max="40" value="15" oninput="recalculateScenario()" class="w-full accent-blue-600 bg-slate-100 h-1.5 rounded-lg">
+            </div>
+            <div>
+              <div class="flex justify-between text-xs font-semibold text-slate-600 mb-1"><span>Daily Called Rate</span><span id="slider-booking-val" class="text-slate-400">15 called/day</span></div>
+              <input type="range" id="slider-booking" min="5" max="50" value="15" oninput="recalculateScenario()" class="w-full accent-blue-600 bg-slate-100 h-1.5 rounded-lg">
+            </div>
+          </div>
+          <div class="pt-3 border-t border-slate-100 space-y-3">
+            <div class="flex justify-between items-baseline">
+              <div><span class="text-[10px] font-bold uppercase text-slate-400">Adjusted Q Ahead</span><div id="sim-q-ahead" class="text-3xl font-black text-slate-900 mt-0.5">0</div></div>
+              <div class="text-right"><span class="text-[10px] font-bold uppercase text-slate-400">Est. Working Days</span><div id="sim-est-days" class="text-lg font-bold text-blue-600">~0</div></div>
+            </div>
+            <div class="bg-slate-50 p-3 rounded-xl border text-xs space-y-2">
+              <div class="flex justify-between"><span>Est. Call-up Date</span><span id="sim-est-date" class="font-bold text-blue-600">-</span></div>
+              <div class="flex justify-between"><span>Est. Chinese Ahead</span><span id="sim-chinese-ahead" class="font-bold">0</span></div>
+              <div class="flex justify-between items-center pt-2 border-t"><span class="font-bold">Projected Likelihood</span><span id="sim-status-pill" class="bg-slate-400 text-white font-bold text-[10px] uppercase px-2.5 py-1 rounded">Pending</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: PROJECT BREAKDOWN -->
+    <div id="tab-breakdown" class="space-y-6 hidden">
+      <!-- Summary Cards by Project -->
+      <section>
+        <h2 class="text-sm font-bold text-slate-800 mb-3 border-l-4 border-cyan-500 pl-2">Total Units Selected by Project</h2>
+        <div id="project-cards-container" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+          <!-- Dynamically Populated Project Cards -->
+        </div>
+      </section>
+
+      <!-- Project Booking Share Circle / Doughnut Chart -->
+      <section class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+        <h3 class="font-bold text-slate-800 text-sm mb-4 flex items-center gap-2">
+          <span>📊</span> Project Booking Share Distribution
+        </h3>
+        <div class="h-64 relative flex justify-center items-center">
+          <canvas id="projectChart"></canvas>
+        </div>
+      </section>
+
+      <!-- Hidden Daily Log Table (Data parsed in background) -->
+      <div class="hidden">
+        <table class="w-full">
+          <thead id="tableHeader"></thead>
+          <tbody id="tableBody"></tbody>
+          <tfoot id="tableFooter"></tfoot>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRb0bt_1rAwFdIesV9SJLbueCX2H9y7UuXxeFwUrFIc51tqZeCggb4IEXNTXulJ9A/pub?gid=871082013&single=true&output=csv';
+    let rawSheetMatrix = [];
+    let projectDoughnutChart = null;
+    
+    let calculatedPctChineseSelection = 0;
+    let sumChineseTaken = 0;
+    let sumTotalCalled = 0;
+    let sumTotalDropouts = 0;
+
+    const KNOWN_PROJECT_KEYS = ['gm natura', 'gm ascent', 'up vista', 'up glades', 'th cascadia', 'qc', 'qa'];
+    
+    const DISTINCT_CHART_COLORS = [
+      '#2563EB',
+      '#F97316',
+      '#10B981',
+      '#F59E0B',
+      '#8B5CF6',
+      '#06B6D4',
+      '#EC4899'
+    ];
+
+    function switchTab(tabId) {
+      document.getElementById('tab-queue').classList.add('hidden');
+      document.getElementById('tab-breakdown').classList.add('hidden');
+      document.getElementById('tab-btn-1').className = "px-5 py-2 rounded-lg text-slate-500 transition";
+      document.getElementById('tab-btn-2').className = "px-5 py-2 rounded-lg text-slate-500 transition";
+
+      if (tabId === 'tab-queue') {
+        document.getElementById('tab-queue').classList.remove('hidden');
+        document.getElementById('tab-btn-1').className = "px-5 py-2 rounded-lg bg-white text-slate-800 shadow-sm transition";
+      } else {
+        document.getElementById('tab-breakdown').classList.remove('hidden');
+        document.getElementById('tab-btn-2').className = "px-5 py-2 rounded-lg bg-white text-slate-800 shadow-sm transition";
+      }
+    }
+
+    function findMatrixValue(matrix, targetLabel) {
+      const cleanTarget = targetLabel.trim().toLowerCase();
+      for (let r = 0; r < matrix.length; r++) {
+        for (let c = 0; c < matrix[r].length; c++) {
+          if (matrix[r][c] && matrix[r][c].toString().trim().toLowerCase() === cleanTarget) {
+            if (c + 1 < matrix[r].length && matrix[r][c + 1] !== '') {
+              return matrix[r][c + 1].toString().trim();
+            }
+            if (r + 1 < matrix.length && matrix[r + 1][c] !== '') {
+              return matrix[r + 1][c].toString().trim();
+            }
+          }
+        }
+      }
+      return '-';
+    }
+
+    function addBusinessDays(startDate, days) {
+      let currentDate = new Date(startDate);
+      let addedDays = 0;
+      while (addedDays < days) {
+        currentDate.setDate(currentDate.getDate() + 1);
+        if (currentDate.getDay() !== 0 && currentDate.getDay() !== 6) {
+          addedDays++;
+        }
+      }
+      return currentDate;
+    }
+
+    function loadData() {
+      Papa.parse(GOOGLE_SHEET_CSV_URL, {
+        download: true,
+        header: false,
+        skipEmptyLines: false,
+        complete: function(results) {
+          rawSheetMatrix = results.data;
+          if (rawSheetMatrix && rawSheetMatrix.length > 0) {
+            parseCustomSheetMatrix(rawSheetMatrix);
+          }
+          document.getElementById('last-updated-time').innerText = new Date().toLocaleTimeString();
+        }
+      });
+    }
+
+    function parseCustomSheetMatrix(matrix) {
+      const currentQVal = findMatrixValue(matrix, 'Current Q number');
+      document.getElementById('val-current-q').innerText = currentQVal !== '-' ? currentQVal : '0';
+
+      let sheetTotalDropouts = findMatrixValue(matrix, 'Current Total Dropouts');
+      if (sheetTotalDropouts === '-') {
+        sheetTotalDropouts = findMatrixValue(matrix, 'Total Dropouts');
+      }
+      document.getElementById('overview-total-dropouts').innerText = sheetTotalDropouts !== '-' ? sheetTotalDropouts : '0';
+
+      document.getElementById('val-chinese-left').innerText = findMatrixValue(matrix, 'Total chinese left');
+      document.getElementById('val-malay-left').innerText = findMatrixValue(matrix, 'Total Malay left');
+      document.getElementById('val-indian-left').innerText = findMatrixValue(matrix, 'Total Indian/others left');
+
+      let tableHeaderRowIndex = -1;
+      for (let r = 0; r < matrix.length; r++) {
+        if (matrix[r].some(cell => cell && cell.toString().toLowerCase().includes('date of flat booking'))) {
+          tableHeaderRowIndex = r;
+          break;
+        }
+      }
+
+      if (tableHeaderRowIndex !== -1) {
+        const headers = matrix[tableHeaderRowIndex];
+        const calledColIdx = headers.findIndex(h => h && h.toString().toLowerCase().includes('total called'));
+        const dropoutColIdx = headers.findIndex(h => h && h.toString().toLowerCase().includes('dropout'));
+        const chineseTakenColIdx = headers.findIndex(h => h && h.toString().toLowerCase().includes('no. of chinese taken'));
+
+        sumTotalCalled = 0;
+        sumTotalDropouts = 0;
+        sumChineseTaken = 0;
+
+        const projectColumnIndices = [];
+        const columnTotals = new Array(headers.length).fill(0);
+
+        headers.forEach((h, colIdx) => {
+          if (!h) return;
+          const cleanH = h.toString().trim().toLowerCase();
+          const isProject = KNOWN_PROJECT_KEYS.some(pk => cleanH.includes(pk));
+          if (isProject) projectColumnIndices.push(colIdx);
+        });
+
+        for (let r = tableHeaderRowIndex + 1; r < matrix.length; r++) {
+          const row = matrix[r];
+          if (!row || !row.some(c => c && c.toString().trim() !== '')) continue;
+
+          for (let c = 0; c < headers.length; c++) {
+            if (!headers[c]) continue;
+            const cellValRaw = row[c] !== undefined ? row[c].toString().trim() : '';
+            const cellValNum = parseInt(cellValRaw) || 0;
+            columnTotals[c] += cellValNum;
+          }
+
+          if (calledColIdx !== -1 && row[calledColIdx]) sumTotalCalled += parseInt(row[calledColIdx]) || 0;
+          if (dropoutColIdx !== -1 && row[dropoutColIdx]) sumTotalDropouts += parseInt(row[dropoutColIdx]) || 0;
+          if (chineseTakenColIdx !== -1 && row[chineseTakenColIdx]) sumChineseTaken += parseInt(row[chineseTakenColIdx]) || 0;
+        }
+
+        renderProjectCards(headers, columnTotals, projectColumnIndices);
+        renderProjectChart(headers, columnTotals, projectColumnIndices);
+
+        const overallDropoutRate = sumTotalCalled > 0 ? ((sumTotalDropouts / sumTotalCalled) * 100).toFixed(2) + '%' : '0%';
+        document.getElementById('overview-dropout-rate').innerText = overallDropoutRate;
+
+        const chineseFilledPctVal = ((sumChineseTaken / 441) * 100).toFixed(2);
+        document.getElementById('val-chinese-filled-pct').innerText = chineseFilledPctVal + '%';
+        document.getElementById('chinese-progress-bar').style.width = chineseFilledPctVal + '%';
+
+        // Read direct value from sheet cell next to "% of numbers called booked as Chinese"
+        const directChineseBookedPct = findMatrixValue(matrix, '% of numbers called booked as Chinese');
+        
+        if (directChineseBookedPct !== '-') {
+          let numVal = parseFloat(directChineseBookedPct.replace('%', ''));
+          if (!isNaN(numVal)) {
+            calculatedPctChineseSelection = numVal > 1 ? numVal / 100 : numVal;
+            document.getElementById('val-chinese-selection-pct').innerText = (calculatedPctChineseSelection * 100).toFixed(2) + '%';
+          } else {
+            calculatedPctChineseSelection = sumTotalCalled > 0 ? (sumChineseTaken / sumTotalCalled) : 0;
+            document.getElementById('val-chinese-selection-pct').innerText = (calculatedPctChineseSelection * 100).toFixed(2) + '%';
+          }
+        } else {
+          calculatedPctChineseSelection = sumTotalCalled > 0 ? (sumChineseTaken / sumTotalCalled) : 0;
+          document.getElementById('val-chinese-selection-pct').innerText = (calculatedPctChineseSelection * 100).toFixed(2) + '%';
+        }
+      }
+
+      updateQueueCalculations();
+    }
+
+    function renderProjectCards(headers, columnTotals, projectIndices) {
+      const container = document.getElementById('project-cards-container');
+      let cardsHTML = '';
+
+      let grandProjectSum = 0;
+      projectIndices.forEach(idx => grandProjectSum += (columnTotals[idx] || 0));
+
+      projectIndices.forEach((idx, i) => {
+        const projectName = headers[idx];
+        const unitsTaken = columnTotals[idx] || 0;
+        const sharePct = grandProjectSum > 0 ? ((unitsTaken / grandProjectSum) * 100).toFixed(1) : 0;
+        const cardColor = DISTINCT_CHART_COLORS[i % DISTINCT_CHART_COLORS.length];
+
+        cardsHTML += `
+          <div class="bg-white p-3.5 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between space-y-2">
+            <span class="text-[10px] font-bold uppercase text-slate-400 truncate block">${projectName}</span>
+            <div class="flex items-baseline justify-between">
+              <span class="text-2xl font-black" style="color: ${cardColor};">${unitsTaken}</span>
+              <span class="text-[10px] font-bold text-slate-400">${sharePct}%</span>
+            </div>
+            <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+              <div class="h-full rounded-full" style="width: ${sharePct}%; background-color: ${cardColor};"></div>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = cardsHTML;
+    }
+
+    function renderProjectChart(headers, columnTotals, projectIndices) {
+      const labels = [];
+      const data = [];
+
+      projectIndices.forEach(idx => {
+        labels.push(headers[idx]);
+        data.push(columnTotals[idx] || 0);
+      });
+
+      const ctx = document.getElementById('projectChart').getContext('2d');
+
+      if (projectDoughnutChart) {
+        projectDoughnutChart.destroy();
+      }
+
+      projectDoughnutChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: data,
+            backgroundColor: DISTINCT_CHART_COLORS.slice(0, labels.length),
+            borderWidth: 2,
+            borderColor: '#ffffff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'right',
+              labels: {
+                font: { size: 11, weight: '600' },
+                padding: 15,
+                usePointStyle: true,
+                pointStyle: 'circle'
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                  const value = context.raw || 0;
+                  const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                  return ` ${context.label}: ${value} units (${percentage}%)`;
+                }
+              }
+            }
+          },
+          cutout: '65%'
+        }
+      });
+    }
+
+    function updateQueueCalculations() {
+      const yourQ = parseInt(document.getElementById('input-your-q').value) || 0;
+      const currentQ = parseInt(document.getElementById('val-current-q').innerText) || 0;
+      const chineseLeft = parseInt(document.getElementById('val-chinese-left').innerText) || 0;
+
+      const qAhead = Math.max(0, yourQ - currentQ);
+      document.getElementById('val-q-ahead').innerText = qAhead;
+
+      const expectedCutoffQ = calculatedPctChineseSelection > 0 
+        ? currentQ + Math.ceil(chineseLeft / calculatedPctChineseSelection) 
+        : currentQ;
+      document.getElementById('val-cutoff-q').innerText = expectedCutoffQ;
+
+      const expectedNonChineseSelections = qAhead * (1 - calculatedPctChineseSelection);
+      const expectedChineseSelectionsAhead = qAhead - expectedNonChineseSelections;
+      const pill = document.getElementById('val-likely-pill');
+
+      if (expectedChineseSelectionsAhead < chineseLeft) {
+        pill.innerText = 'Likely';
+        pill.className = 'inline-block bg-emerald-500 text-white font-bold text-xs px-3 py-1 rounded-md';
+      } else {
+        pill.innerText = 'Unlikely';
+        pill.className = 'inline-block bg-red-500 text-white font-bold text-xs px-3 py-1 rounded-md';
+      }
+
+      recalculateScenario();
+    }
+
+    function recalculateScenario() {
+      const dropRate = parseInt(document.getElementById('slider-dropout').value);
+      const dailyCalledRate = parseInt(document.getElementById('slider-booking').value);
+
+      document.getElementById('slider-dropout-val').innerText = dropRate + '%';
+      document.getElementById('slider-booking-val').innerText = dailyCalledRate + ' called/day';
+
+      const qAheadRaw = parseInt(document.getElementById('val-q-ahead').innerText) || 0;
+      const chineseLeft = parseInt(document.getElementById('val-chinese-left').innerText) || 0;
+
+      const adjustedQAhead = Math.round(qAheadRaw * (1 - (dropRate / 100)));
+      const chineseAhead = Math.round(adjustedQAhead * calculatedPctChineseSelection);
+      const estDays = Math.round(adjustedQAhead / (dailyCalledRate || 1));
+      
+      const projectedDate = addBusinessDays(new Date(), estDays);
+      const formattedDate = projectedDate.toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' });
+
+      document.getElementById('sim-q-ahead').innerText = adjustedQAhead;
+      document.getElementById('sim-est-days').innerText = '~' + estDays + ' days';
+      document.getElementById('sim-est-date').innerText = formattedDate;
+      document.getElementById('sim-chinese-ahead').innerText = chineseAhead;
+
+      const simPill = document.getElementById('sim-status-pill');
+      if (chineseAhead <= chineseLeft) {
+        simPill.innerText = "Likely";
+        simPill.className = "bg-emerald-500 text-white font-bold text-[10px] uppercase px-2.5 py-1 rounded";
+      } else {
+        simPill.innerText = "Unlikely";
+        simPill.className = "bg-red-500 text-white font-bold text-[10px] uppercase px-2.5 py-1 rounded";
+      }
+    }
+
+    window.onload = loadData;
+  </script>
+</body>
+</html>

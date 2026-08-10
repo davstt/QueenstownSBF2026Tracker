@@ -60,6 +60,20 @@
           </div>
         </section>
 
+        <!-- Units Selected Summary (Tab 1) -->
+        <section class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center divide-x divide-slate-100">
+          <div class="pr-8 flex-1">
+            <div id="tab1-units-selected" class="text-4xl font-black text-slate-900">0</div>
+            <div class="text-sm font-bold text-slate-800 mt-1">selected</div>
+            <div class="text-xs text-slate-400">latest census</div>
+          </div>
+          <div class="pl-8 flex-1">
+            <div id="tab1-units-remaining" class="text-4xl font-black text-slate-900">710</div>
+            <div class="text-sm font-bold text-slate-800 mt-1">remaining</div>
+            <div class="text-xs text-slate-400">of 710</div>
+          </div>
+        </section>
+
         <!-- Ethnic Quota Remaining -->
         <section>
           <h2 class="text-sm font-bold text-slate-800 mb-3 border-l-4 border-emerald-500 pl-2">Ethnic Quota Remaining</h2>
@@ -141,6 +155,20 @@
 
     <!-- TAB 2: PROJECT BREAKDOWN -->
     <div id="tab-breakdown" class="space-y-6 hidden">
+      <!-- Units Selected Summary (Tab 2) -->
+      <section class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center divide-x divide-slate-100">
+        <div class="pr-8 flex-1">
+          <div id="tab2-units-selected" class="text-4xl font-black text-slate-900">0</div>
+          <div class="text-sm font-bold text-slate-800 mt-1">selected</div>
+          <div class="text-xs text-slate-400">latest census</div>
+        </div>
+        <div class="pl-8 flex-1">
+          <div id="tab2-units-remaining" class="text-4xl font-black text-slate-900">710</div>
+          <div class="text-sm font-bold text-slate-800 mt-1">remaining</div>
+          <div class="text-xs text-slate-400">of 710</div>
+        </div>
+      </section>
+
       <!-- Summary Cards by Project -->
       <section>
         <h2 class="text-sm font-bold text-slate-800 mb-3 border-l-4 border-cyan-500 pl-2">Total Units Selected by Project</h2>
@@ -266,6 +294,16 @@
       document.getElementById('val-chinese-left').innerText = findMatrixValue(matrix, 'Total chinese left');
       document.getElementById('val-malay-left').innerText = findMatrixValue(matrix, 'Total Malay left');
       document.getElementById('val-indian-left').innerText = findMatrixValue(matrix, 'Total Indian/others left');
+
+      // Total Units Booked extraction
+      const unitsBookedRaw = findMatrixValue(matrix, 'Total units booked');
+      const unitsBooked = parseInt(unitsBookedRaw) || 0;
+      const unitsRemaining = Math.max(0, 710 - unitsBooked);
+
+      document.getElementById('tab1-units-selected').innerText = unitsBooked;
+      document.getElementById('tab1-units-remaining').innerText = unitsRemaining;
+      document.getElementById('tab2-units-selected').innerText = unitsBooked;
+      document.getElementById('tab2-units-remaining').innerText = unitsRemaining;
 
       let tableHeaderRowIndex = -1;
       for (let r = 0; r < matrix.length; r++) {

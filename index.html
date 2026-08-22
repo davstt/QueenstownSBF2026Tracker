@@ -319,7 +319,6 @@
           if (isProject) {
             projectColumnIndices.push(colIdx);
 
-            // Read remaining quota from row directly above header (tableHeaderRowIndex - 1)
             let quotaVal = "-";
             if (tableHeaderRowIndex > 0 && matrix[tableHeaderRowIndex - 1][colIdx]) {
               quotaVal = matrix[tableHeaderRowIndex - 1][colIdx].toString().trim();
@@ -328,7 +327,6 @@
           }
         });
 
-        // Store daily called values to derive yesterday's increase
         let activeDailyCalledList = [];
 
         for (let r = tableHeaderRowIndex + 1; r < matrix.length; r++) {
@@ -354,7 +352,6 @@
           if (chineseTakenColIdx !== -1 && row[chineseTakenColIdx]) sumChineseTaken += parseInt(row[chineseTakenColIdx]) || 0;
         }
 
-        // Calculate and display Queue Number Increase from previous day
         if (activeDailyCalledList.length > 0) {
           const lastCalledVal = activeDailyCalledList[activeDailyCalledList.length - 1];
           document.getElementById('val-q-diff').innerText = `(+${lastCalledVal})`;
@@ -409,18 +406,24 @@
         const chineseQuotaLeft = projectChineseQuotaLeft[idx] !== undefined ? projectChineseQuotaLeft[idx] : '-';
 
         cardsHTML += `
-          <div class="bg-white p-3.5 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between space-y-2">
-            <span class="text-[10px] font-bold uppercase text-slate-400 truncate block">${projectName}</span>
-            <div>
-              <div class="flex items-baseline justify-between">
-                <span class="text-2xl font-black" style="color: ${cardColor};">${unitsTaken}</span>
-                <span class="text-[10px] font-bold text-slate-400">${sharePct}%</span>
+          <div class="bg-white p-3.5 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-bold uppercase text-slate-400 truncate block">${projectName}</span>
+              <span class="text-[10px] font-bold text-slate-400">${sharePct}%</span>
+            </div>
+            
+            <div class="space-y-2 pt-1 border-t border-slate-50">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-bold uppercase text-slate-400">Booked:</span>
+                <span class="text-xl font-black" style="color: ${cardColor};">${unitsTaken}</span>
               </div>
-              <div class="text-[10px] font-semibold text-red-500 mt-0.5">
-                🇨🇳 Quota Left: <span class="font-bold">${chineseQuotaLeft}</span>
+              <div class="flex items-center justify-between bg-red-50/50 p-1.5 rounded-lg border border-red-100/60">
+                <span class="text-[10px] font-bold uppercase text-red-500">CN Left:</span>
+                <span class="text-sm font-black text-red-600">${chineseQuotaLeft}</span>
               </div>
             </div>
-            <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+
+            <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-1">
               <div class="h-full rounded-full" style="width: ${sharePct}%; background-color: ${cardColor};"></div>
             </div>
           </div>

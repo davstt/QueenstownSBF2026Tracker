@@ -43,7 +43,10 @@
             </div>
             <div class="bg-white p-3.5 rounded-xl border border-slate-100 shadow-sm">
               <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Current Q number</span>
-              <div id="val-current-q" class="text-xl font-black text-slate-800 mt-1">0</div>
+              <div class="flex items-baseline gap-1.5 mt-1">
+                <span id="val-current-q" class="text-xl font-black text-slate-800">0</span>
+                <span id="val-q-diff" class="text-xs font-bold text-emerald-600"></span>
+              </div>
             </div>
             <div class="bg-white p-3.5 rounded-xl border border-slate-100 shadow-sm">
               <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">no. of q ahead</span>
@@ -169,7 +172,7 @@
 
       <!-- Summary Cards by Project -->
       <section>
-        <h2 class="text-sm font-bold text-slate-800 mb-3 border-l-4 border-cyan-500 pl-2">Total Units Selected by Project</h2>
+        <h2 class="text-sm font-bold text-slate-800 mb-3 border-l-4 border-cyan-500 pl-2">Total Units & Remaining Chinese Quota by Project</h2>
         <div id="project-cards-container" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
           <!-- Dynamically Populated Project Cards -->
         </div>
@@ -184,15 +187,6 @@
           <canvas id="projectChart"></canvas>
         </div>
       </section>
-
-      <!-- Hidden Daily Log Table (Data parsed in background) -->
-      <div class="hidden">
-        <table class="w-full">
-          <thead id="tableHeader"></thead>
-          <tbody id="tableBody"></tbody>
-          <tfoot id="tableFooter"></tfoot>
-        </table>
-      </div>
     </div>
 
   </div>
@@ -212,13 +206,7 @@
     const KNOWN_PROJECT_KEYS = ['gm natura', 'gm ascent', 'up vista', 'up glades', 'th cascadia', 'qc', 'qa'];
     
     const DISTINCT_CHART_COLORS = [
-      '#2563EB',
-      '#F97316',
-      '#10B981',
-      '#F59E0B',
-      '#8B5CF6',
-      '#06B6D4',
-      '#EC4899'
+      '#2563EB', '#F97316', '#10B981', '#F59E0B', '#8B5CF6', '#06B6D4', '#EC4899'
     ];
 
     function switchTab(tabId) {
@@ -285,16 +273,13 @@
       document.getElementById('val-current-q').innerText = currentQVal !== '-' ? currentQVal : '0';
 
       let sheetTotalDropouts = findMatrixValue(matrix, 'Current Total Dropouts');
-      if (sheetTotalDropouts === '-') {
-        sheetTotalDropouts = findMatrixValue(matrix, 'Total Dropouts');
-      }
+      if (sheetTotalDropouts === '-') sheetTotalDropouts = findMatrixValue(matrix, 'Total Dropouts');
       document.getElementById('overview-total-dropouts').innerText = sheetTotalDropouts !== '-' ? sheetTotalDropouts : '0';
 
       document.getElementById('val-chinese-left').innerText = findMatrixValue(matrix, 'Total chinese left');
       document.getElementById('val-malay-left').innerText = findMatrixValue(matrix, 'Total Malay left');
       document.getElementById('val-indian-left').innerText = findMatrixValue(matrix, 'Total Indian/others left');
 
-      // Total Units Booked extraction
       const unitsBookedRaw = findMatrixValue(matrix, 'Total units booked');
       const unitsBooked = parseInt(unitsBookedRaw) || 0;
       const unitsRemaining = Math.max(0, 710 - unitsBooked);
@@ -325,13 +310,26 @@
 
         const projectColumnIndices = [];
         const columnTotals = new Array(headers.length).fill(0);
+        const projectChineseQuotaLeft = {};
 
         headers.forEach((h, colIdx) => {
           if (!h) return;
           const cleanH = h.toString().trim().toLowerCase();
           const isProject = KNOWN_PROJECT_KEYS.some(pk => cleanH.includes(pk));
-          if (isProject) projectColumnIndices.push(colIdx);
+          if (isProject) {
+            projectColumnIndices.push(colIdx);
+
+            // Read remaining quota from row directly above header (tableHeaderRowIndex - 1)
+            let quotaVal = "-";
+            if (tableHeaderRowIndex > 0 && matrix[tableHeaderRowIndex - 1][colIdx]) {
+              quotaVal = matrix[tableHeaderRowIndex - 1][colIdx].toString().trim();
+            }
+            projectChineseQuotaLeft[colIdx] = quotaVal;
+          }
         });
+
+        // Store daily called values to derive yesterday's increase
+        let activeDailyCalledList = [];
 
         for (let r = tableHeaderRowIndex + 1; r < matrix.length; r++) {
           const row = matrix[r];
@@ -347,15 +345,26 @@
           if (calledColIdx !== -1 && row[calledColIdx]) {
             const calledVal = parseInt(row[calledColIdx]) || 0;
             sumTotalCalled += calledVal;
-            if (calledVal > 0) validDailyCountDays++;
+            if (calledVal > 0) {
+              validDailyCountDays++;
+              activeDailyCalledList.push(calledVal);
+            }
           }
           if (dropoutColIdx !== -1 && row[dropoutColIdx]) sumTotalDropouts += parseInt(row[dropoutColIdx]) || 0;
           if (chineseTakenColIdx !== -1 && row[chineseTakenColIdx]) sumChineseTaken += parseInt(row[chineseTakenColIdx]) || 0;
         }
 
+        // Calculate and display Queue Number Increase from previous day
+        if (activeDailyCalledList.length > 0) {
+          const lastCalledVal = activeDailyCalledList[activeDailyCalledList.length - 1];
+          document.getElementById('val-q-diff').innerText = `(+${lastCalledVal})`;
+        } else {
+          document.getElementById('val-q-diff').innerText = '';
+        }
+
         averageDailyCalledRate = validDailyCountDays > 0 ? Math.round(sumTotalCalled / validDailyCountDays) : 15;
 
-        renderProjectCards(headers, columnTotals, projectColumnIndices);
+        renderProjectCards(headers, columnTotals, projectColumnIndices, projectChineseQuotaLeft);
         renderProjectChart(headers, columnTotals, projectColumnIndices);
 
         liveDropoutRateVal = sumTotalCalled > 0 ? (sumTotalDropouts / sumTotalCalled) * 100 : 0;
@@ -385,7 +394,7 @@
       updateQueueCalculations();
     }
 
-    function renderProjectCards(headers, columnTotals, projectIndices) {
+    function renderProjectCards(headers, columnTotals, projectIndices, projectChineseQuotaLeft) {
       const container = document.getElementById('project-cards-container');
       let cardsHTML = '';
 
@@ -397,13 +406,19 @@
         const unitsTaken = columnTotals[idx] || 0;
         const sharePct = grandProjectSum > 0 ? ((unitsTaken / grandProjectSum) * 100).toFixed(1) : 0;
         const cardColor = DISTINCT_CHART_COLORS[i % DISTINCT_CHART_COLORS.length];
+        const chineseQuotaLeft = projectChineseQuotaLeft[idx] !== undefined ? projectChineseQuotaLeft[idx] : '-';
 
         cardsHTML += `
           <div class="bg-white p-3.5 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between space-y-2">
             <span class="text-[10px] font-bold uppercase text-slate-400 truncate block">${projectName}</span>
-            <div class="flex items-baseline justify-between">
-              <span class="text-2xl font-black" style="color: ${cardColor};">${unitsTaken}</span>
-              <span class="text-[10px] font-bold text-slate-400">${sharePct}%</span>
+            <div>
+              <div class="flex items-baseline justify-between">
+                <span class="text-2xl font-black" style="color: ${cardColor};">${unitsTaken}</span>
+                <span class="text-[10px] font-bold text-slate-400">${sharePct}%</span>
+              </div>
+              <div class="text-[10px] font-semibold text-red-500 mt-0.5">
+                🇨🇳 Quota Left: <span class="font-bold">${chineseQuotaLeft}</span>
+              </div>
             </div>
             <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
               <div class="h-full rounded-full" style="width: ${sharePct}%; background-color: ${cardColor};"></div>

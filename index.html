@@ -115,6 +115,14 @@
             </div>
           </div>
         </section>
+
+        <!-- Dropout Rate Tracking Chart -->
+        <section class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+          <h2 class="text-sm font-bold text-slate-800 mb-4 border-l-4 border-rose-500 pl-2">Dropout Rate Tracking</h2>
+          <div class="h-64 relative">
+            <canvas id="dropoutLineChart"></canvas>
+          </div>
+        </section>
       </div>
 
       <!-- Right Sidebar Scenario -->
@@ -172,7 +180,7 @@
 
       <!-- Summary Cards by Project -->
       <section>
-        <h2 class="text-sm font-bold text-slate-800 mb-3 border-l-4 border-cyan-500 pl-2">Total Units & Remaining Chinese Quota by Project</h2>
+        <h2 class="text-sm font-bold text-slate-800 mb-3 border-l-4 border-cyan-500 pl-2">Total Units Booked & Remaining Chinese Quota by Project</h2>
         <div id="project-cards-container" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
           <!-- Dynamically Populated Project Cards -->
         </div>
@@ -195,6 +203,7 @@
     const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRb0bt_1rAwFdIesV9SJLbueCX2H9y7UuXxeFwUrFIc51tqZeCggb4IEXNTXulJ9A/pub?gid=871082013&single=true&output=csv';
     let rawSheetMatrix = [];
     let projectDoughnutChart = null;
+    let dropoutLineChart = null;
     
     let calculatedPctChineseSelection = 0;
     let liveDropoutRateVal = 0;
@@ -299,6 +308,7 @@
 
       if (tableHeaderRowIndex !== -1) {
         const headers = matrix[tableHeaderRowIndex];
+        const dateColIdx = headers.findIndex(h => h && h.toString().toLowerCase().includes('date of flat booking'));
         const calledColIdx = headers.findIndex(h => h && h.toString().toLowerCase().includes('total called'));
         const dropoutColIdx = headers.findIndex(h => h && h.toString().toLowerCase().includes('dropout'));
         const chineseTakenColIdx = headers.findIndex(h => h && h.toString().toLowerCase().includes('no. of chinese taken'));
@@ -328,6 +338,12 @@
         });
 
         let activeDailyCalledList = [];
+        const dropoutChartDates = [];
+        const dailyDropoutRates = [];
+        const overallDropoutRates = [];
+
+        let runningCalledTotal = 0;
+        let runningDropoutTotal = 0;
 
         for (let r = tableHeaderRowIndex + 1; r < matrix.length; r++) {
           const row = matrix[r];
@@ -340,16 +356,32 @@
             columnTotals[c] += cellValNum;
           }
 
+          const dailyCalled = calledColIdx !== -1 && row[calledColIdx] ? parseInt(row[calledColIdx]) || 0 : 0;
+          const dailyDropout = dropoutColIdx !== -1 && row[dropoutColIdx] ? parseInt(row[dropoutColIdx]) || 0 : 0;
+
           if (calledColIdx !== -1 && row[calledColIdx]) {
-            const calledVal = parseInt(row[calledColIdx]) || 0;
-            sumTotalCalled += calledVal;
-            if (calledVal > 0) {
+            sumTotalCalled += dailyCalled;
+            if (dailyCalled > 0) {
               validDailyCountDays++;
-              activeDailyCalledList.push(calledVal);
+              activeDailyCalledList.push(dailyCalled);
             }
           }
-          if (dropoutColIdx !== -1 && row[dropoutColIdx]) sumTotalDropouts += parseInt(row[dropoutColIdx]) || 0;
+          if (dropoutColIdx !== -1 && row[dropoutColIdx]) sumTotalDropouts += dailyDropout;
           if (chineseTakenColIdx !== -1 && row[chineseTakenColIdx]) sumChineseTaken += parseInt(row[chineseTakenColIdx]) || 0;
+
+          // Process line chart points for rows with valid dates
+          if (dateColIdx !== -1 && row[dateColIdx] && row[dateColIdx].toString().trim() !== '') {
+            const dateStr = row[dateColIdx].toString().trim();
+            runningCalledTotal += dailyCalled;
+            runningDropoutTotal += dailyDropout;
+
+            const dailyRate = dailyCalled > 0 ? ((dailyDropout / dailyCalled) * 100).toFixed(1) : 0;
+            const overallRate = runningCalledTotal > 0 ? ((runningDropoutTotal / runningCalledTotal) * 100).toFixed(1) : 0;
+
+            dropoutChartDates.push(dateStr);
+            dailyDropoutRates.push(dailyRate);
+            overallDropoutRates.push(overallRate);
+          }
         }
 
         if (activeDailyCalledList.length > 0) {
@@ -363,6 +395,7 @@
 
         renderProjectCards(headers, columnTotals, projectColumnIndices, projectChineseQuotaLeft);
         renderProjectChart(headers, columnTotals, projectColumnIndices);
+        renderDropoutLineChart(dropoutChartDates, dailyDropoutRates, overallDropoutRates);
 
         liveDropoutRateVal = sumTotalCalled > 0 ? (sumTotalDropouts / sumTotalCalled) * 100 : 0;
         document.getElementById('overview-dropout-rate').innerText = liveDropoutRateVal.toFixed(2) + '%';
@@ -407,23 +440,23 @@
 
         cardsHTML += `
           <div class="bg-white p-3.5 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between space-y-3">
-            <div class="flex items-center justify-between">
-              <span class="text-[10px] font-bold uppercase text-slate-400 truncate block">${projectName}</span>
-              <span class="text-[10px] font-bold text-slate-400">${sharePct}%</span>
-            </div>
+            <span class="text-[10px] font-bold uppercase text-slate-400 truncate block">${projectName}</span>
             
-            <div class="space-y-2 pt-1 border-t border-slate-50">
-              <div class="flex items-center justify-between">
-                <span class="text-[10px] font-bold uppercase text-slate-400">Booked:</span>
-                <span class="text-xl font-black" style="color: ${cardColor};">${unitsTaken}</span>
+            <div class="space-y-2">
+              <!-- Booked Section -->
+              <div>
+                <span class="text-[9px] font-bold uppercase tracking-wider text-slate-400 block">Booked</span>
+                <span class="text-2xl font-black block mt-0.5" style="color: ${cardColor};">${unitsTaken}</span>
               </div>
-              <div class="flex items-center justify-between bg-red-50/50 p-1.5 rounded-lg border border-red-100/60">
-                <span class="text-[10px] font-bold uppercase text-red-500">CN Left:</span>
-                <span class="text-sm font-black text-red-600">${chineseQuotaLeft}</span>
+
+              <!-- Quota Remaining Section -->
+              <div class="pt-2 border-t border-slate-100">
+                <span class="text-[9px] font-bold uppercase tracking-wider text-slate-400 block">CN Left</span>
+                <span class="text-lg font-black text-rose-500 block mt-0.5">${chineseQuotaLeft}</span>
               </div>
             </div>
 
-            <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-1">
+            <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
               <div class="h-full rounded-full" style="width: ${sharePct}%; background-color: ${cardColor};"></div>
             </div>
           </div>
@@ -484,6 +517,78 @@
             }
           },
           cutout: '65%'
+        }
+      });
+    }
+
+    function renderDropoutLineChart(labels, dailyRates, overallRates) {
+      const ctx = document.getElementById('dropoutLineChart').getContext('2d');
+
+      if (dropoutLineChart) {
+        dropoutLineChart.destroy();
+      }
+
+      dropoutLineChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Daily Dropout Rate (%)',
+              data: dailyRates,
+              borderColor: '#EF4444',
+              backgroundColor: 'rgba(239, 68, 68, 0.1)',
+              borderWidth: 2,
+              tension: 0.3,
+              fill: false,
+              pointRadius: 3
+            },
+            {
+              label: 'Overall Dropout Rate (%)',
+              data: overallRates,
+              borderColor: '#F59E0B',
+              backgroundColor: 'rgba(245, 158, 11, 0.1)',
+              borderWidth: 2,
+              borderDash: [4, 4],
+              tension: 0.3,
+              fill: false,
+              pointRadius: 3
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: {
+                font: { size: 11, weight: '600' },
+                usePointStyle: true
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return ` ${context.dataset.label}: ${context.raw}%`;
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                callback: function(value) { return value + '%'; },
+                font: { size: 10 }
+              },
+              grid: { color: '#F1F5F9' }
+            },
+            x: {
+              ticks: { font: { size: 10 } },
+              grid: { display: false }
+            }
+          }
         }
       });
     }

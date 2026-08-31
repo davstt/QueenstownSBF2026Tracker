@@ -29,11 +29,9 @@
       <button id="tab-btn-2" onclick="switchTab('tab-breakdown')" class="px-5 py-2 rounded-lg text-slate-500 hover:text-slate-800 transition">Project Breakdown</button>
     </div>
 
-    <!-- TAB 1 -->
     <div id="tab-queue" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
       <div class="lg:col-span-8 space-y-6">
         
-        <!-- Queue Statistics -->
         <section>
           <h2 class="text-sm font-bold text-slate-800 mb-3 border-l-4 border-blue-500 pl-2">Queue Statistics</h2>
           <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -63,7 +61,6 @@
           </div>
         </section>
 
-        <!-- Units Selected Summary (Tab 1) -->
         <section class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center divide-x divide-slate-100">
           <div class="pr-8 flex-1">
             <div id="tab1-units-selected" class="text-4xl font-black text-slate-900">0</div>
@@ -76,7 +73,6 @@
           </div>
         </section>
 
-        <!-- Ethnic Quota Remaining -->
         <section>
           <h2 class="text-sm font-bold text-slate-800 mb-3 border-l-4 border-emerald-500 pl-2">Ethnic Quota Remaining</h2>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -97,7 +93,6 @@
           </div>
         </section>
 
-        <!-- Projection -->
         <section>
           <h2 class="text-sm font-bold text-slate-800 mb-3 border-l-4 border-purple-500 pl-2">Projection</h2>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -116,7 +111,6 @@
           </div>
         </section>
 
-        <!-- Dropout Rate Tracking Chart -->
         <section class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
           <h2 class="text-sm font-bold text-slate-800 mb-4 border-l-4 border-rose-500 pl-2">Dropout Rate Tracking</h2>
           <div class="h-64 relative">
@@ -125,7 +119,6 @@
         </section>
       </div>
 
-      <!-- Right Sidebar Scenario -->
       <div class="lg:col-span-4">
         <div class="bg-white p-5 rounded-2xl border border-blue-100 shadow-sm space-y-5 sticky top-6">
           <div class="flex justify-between items-center">
@@ -135,10 +128,6 @@
             </button>
           </div>
           <div class="space-y-4 pt-1">
-            <div>
-              <div class="flex justify-between text-xs font-semibold text-slate-600 mb-1"><span>Drop-out Rate</span><span id="slider-dropout-val" class="text-slate-400">15%</span></div>
-              <input type="range" id="slider-dropout" min="0" max="40" value="15" oninput="recalculateScenario()" class="w-full accent-blue-600 bg-slate-100 h-1.5 rounded-lg">
-            </div>
             <div>
               <div class="flex justify-between text-xs font-semibold text-slate-600 mb-1"><span>Chinese Booking Rate</span><span id="slider-chinese-pct-val" class="text-slate-400">60%</span></div>
               <input type="range" id="slider-chinese-pct" min="0" max="100" value="60" oninput="recalculateScenario()" class="w-full accent-blue-600 bg-slate-100 h-1.5 rounded-lg">
@@ -150,7 +139,7 @@
           </div>
           <div class="pt-3 border-t border-slate-100 space-y-3">
             <div class="flex justify-between items-baseline">
-              <div><span class="text-[10px] font-bold uppercase text-slate-400">Adjusted Q Ahead</span><div id="sim-q-ahead" class="text-3xl font-black text-slate-900 mt-0.5">0</div></div>
+              <div><span class="text-[10px] font-bold uppercase text-slate-400">Q Ahead</span><div id="sim-q-ahead" class="text-3xl font-black text-slate-900 mt-0.5">0</div></div>
               <div class="text-right"><span class="text-[10px] font-bold uppercase text-slate-400">Est. Working Days</span><div id="sim-est-days" class="text-lg font-bold text-blue-600">~0</div></div>
             </div>
             <div class="bg-slate-50 p-3 rounded-xl border text-xs space-y-2">
@@ -163,9 +152,7 @@
       </div>
     </div>
 
-    <!-- TAB 2: PROJECT BREAKDOWN -->
     <div id="tab-breakdown" class="space-y-6 hidden">
-      <!-- Units Selected Summary (Tab 2) -->
       <section class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center divide-x divide-slate-100">
         <div class="pr-8 flex-1">
           <div id="tab2-units-selected" class="text-4xl font-black text-slate-900">0</div>
@@ -178,15 +165,12 @@
         </div>
       </section>
 
-      <!-- Summary Cards by Project -->
       <section>
         <h2 class="text-sm font-bold text-slate-800 mb-3 border-l-4 border-cyan-500 pl-2">Total Units Booked & Remaining Chinese Quota by Project</h2>
         <div id="project-cards-container" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-          <!-- Dynamically Populated Project Cards -->
-        </div>
+          </div>
       </section>
 
-      <!-- Project Booking Share Circle / Doughnut Chart -->
       <section class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
         <h3 class="font-bold text-slate-800 text-sm mb-4 flex items-center gap-2">
           <span>📊</span> Project Booking Share Distribution
@@ -369,7 +353,6 @@
           if (dropoutColIdx !== -1 && row[dropoutColIdx]) sumTotalDropouts += dailyDropout;
           if (chineseTakenColIdx !== -1 && row[chineseTakenColIdx]) sumChineseTaken += parseInt(row[chineseTakenColIdx]) || 0;
 
-          // Process line chart points for rows with valid dates
           if (dateColIdx !== -1 && row[dateColIdx] && row[dateColIdx].toString().trim() !== '') {
             const dateStr = row[dateColIdx].toString().trim();
             runningCalledTotal += dailyCalled;
@@ -443,13 +426,11 @@
             <span class="text-[10px] font-bold uppercase text-slate-400 truncate block">${projectName}</span>
             
             <div class="space-y-2">
-              <!-- Booked Section -->
               <div>
                 <span class="text-[9px] font-bold uppercase tracking-wider text-slate-400 block">Booked</span>
                 <span class="text-2xl font-black block mt-0.5" style="color: ${cardColor};">${unitsTaken}</span>
               </div>
 
-              <!-- Quota Remaining Section -->
               <div class="pt-2 border-t border-slate-100">
                 <span class="text-[9px] font-bold uppercase tracking-wider text-slate-400 block">CN Left</span>
                 <span class="text-lg font-black text-rose-500 block mt-0.5">${chineseQuotaLeft}</span>
@@ -623,20 +604,16 @@
 
     function resetScenarioSliders() {
       const liveChinesePctRounded = Math.round(calculatedPctChineseSelection * 100);
-      const liveDropoutRounded = Math.round(liveDropoutRateVal) || 15;
 
       document.getElementById('slider-chinese-pct').value = liveChinesePctRounded;
-      document.getElementById('slider-dropout').value = liveDropoutRounded;
       document.getElementById('slider-booking').value = averageDailyCalledRate;
       recalculateScenario();
     }
 
     function recalculateScenario() {
-      const dropRate = parseInt(document.getElementById('slider-dropout').value);
       const chineseRatePct = parseInt(document.getElementById('slider-chinese-pct').value);
       const dailyCalledRate = parseInt(document.getElementById('slider-booking').value);
 
-      document.getElementById('slider-dropout-val').innerText = dropRate + '%';
       document.getElementById('slider-chinese-pct-val').innerText = chineseRatePct + '%';
       document.getElementById('slider-booking-val').innerText = dailyCalledRate + ' called/day';
 
@@ -644,14 +621,13 @@
       const chineseLeft = parseInt(document.getElementById('val-chinese-left').innerText) || 0;
 
       const simPctChinese = chineseRatePct / 100;
-      const adjustedQAhead = Math.round(qAheadRaw * (1 - (dropRate / 100)));
-      const chineseAhead = Math.round(adjustedQAhead * simPctChinese);
-      const estDays = Math.round(adjustedQAhead / (dailyCalledRate || 1));
+      const chineseAhead = Math.round(qAheadRaw * simPctChinese);
+      const estDays = Math.round(qAheadRaw / (dailyCalledRate || 1));
       
       const projectedDate = addBusinessDays(new Date(), estDays);
       const formattedDate = projectedDate.toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' });
 
-      document.getElementById('sim-q-ahead').innerText = adjustedQAhead;
+      document.getElementById('sim-q-ahead').innerText = qAheadRaw;
       document.getElementById('sim-est-days').innerText = '~' + estDays + ' days';
       document.getElementById('sim-est-date').innerText = formattedDate;
       document.getElementById('sim-chinese-ahead').innerText = chineseAhead;

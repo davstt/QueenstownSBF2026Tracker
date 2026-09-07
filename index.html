@@ -29,9 +29,11 @@
       <button id="tab-btn-2" onclick="switchTab('tab-breakdown')" class="px-5 py-2 rounded-lg text-slate-500 hover:text-slate-800 transition">Project Breakdown</button>
     </div>
 
+    <!-- TAB 1 -->
     <div id="tab-queue" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
       <div class="lg:col-span-8 space-y-6">
         
+        <!-- Queue Statistics -->
         <section>
           <h2 class="text-sm font-bold text-slate-800 mb-3 border-l-4 border-blue-500 pl-2">Queue Statistics</h2>
           <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -61,6 +63,7 @@
           </div>
         </section>
 
+        <!-- Units Selected Summary (Tab 1) -->
         <section class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center divide-x divide-slate-100">
           <div class="pr-8 flex-1">
             <div id="tab1-units-selected" class="text-4xl font-black text-slate-900">0</div>
@@ -73,6 +76,7 @@
           </div>
         </section>
 
+        <!-- Ethnic Quota Remaining -->
         <section>
           <h2 class="text-sm font-bold text-slate-800 mb-3 border-l-4 border-emerald-500 pl-2">Ethnic Quota Remaining</h2>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -93,6 +97,7 @@
           </div>
         </section>
 
+        <!-- Projection -->
         <section>
           <h2 class="text-sm font-bold text-slate-800 mb-3 border-l-4 border-purple-500 pl-2">Projection</h2>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -111,6 +116,7 @@
           </div>
         </section>
 
+        <!-- Dropout Rate Tracking Chart -->
         <section class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
           <h2 class="text-sm font-bold text-slate-800 mb-4 border-l-4 border-rose-500 pl-2">Dropout Rate Tracking</h2>
           <div class="h-64 relative">
@@ -119,6 +125,7 @@
         </section>
       </div>
 
+      <!-- Right Sidebar Scenario -->
       <div class="lg:col-span-4">
         <div class="bg-white p-5 rounded-2xl border border-blue-100 shadow-sm space-y-5 sticky top-6">
           <div class="flex justify-between items-center">
@@ -152,7 +159,9 @@
       </div>
     </div>
 
+    <!-- TAB 2: PROJECT BREAKDOWN -->
     <div id="tab-breakdown" class="space-y-6 hidden">
+      <!-- Units Selected Summary (Tab 2) -->
       <section class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center divide-x divide-slate-100">
         <div class="pr-8 flex-1">
           <div id="tab2-units-selected" class="text-4xl font-black text-slate-900">0</div>
@@ -165,12 +174,15 @@
         </div>
       </section>
 
+      <!-- Summary Cards by Project -->
       <section>
         <h2 class="text-sm font-bold text-slate-800 mb-3 border-l-4 border-cyan-500 pl-2">Total Units Booked & Remaining Chinese Quota by Project</h2>
         <div id="project-cards-container" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-          </div>
+          <!-- Dynamically Populated Project Cards -->
+        </div>
       </section>
 
+      <!-- Project Booking Share Circle / Doughnut Chart -->
       <section class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
         <h3 class="font-bold text-slate-800 text-sm mb-4 flex items-center gap-2">
           <span>📊</span> Project Booking Share Distribution
@@ -411,13 +423,9 @@
       const container = document.getElementById('project-cards-container');
       let cardsHTML = '';
 
-      let grandProjectSum = 0;
-      projectIndices.forEach(idx => grandProjectSum += (columnTotals[idx] || 0));
-
       projectIndices.forEach((idx, i) => {
         const projectName = headers[idx];
         const unitsTaken = columnTotals[idx] || 0;
-        const sharePct = grandProjectSum > 0 ? ((unitsTaken / grandProjectSum) * 100).toFixed(1) : 0;
         const cardColor = DISTINCT_CHART_COLORS[i % DISTINCT_CHART_COLORS.length];
         const chineseQuotaLeft = projectChineseQuotaLeft[idx] !== undefined ? projectChineseQuotaLeft[idx] : '-';
 
@@ -435,10 +443,6 @@
                 <span class="text-[9px] font-bold uppercase tracking-wider text-slate-400 block">CN Left</span>
                 <span class="text-lg font-black text-rose-500 block mt-0.5">${chineseQuotaLeft}</span>
               </div>
-            </div>
-
-            <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-              <div class="h-full rounded-full" style="width: ${sharePct}%; background-color: ${cardColor};"></div>
             </div>
           </div>
         `;

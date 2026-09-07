@@ -341,6 +341,9 @@
         let runningCalledTotal = 0;
         let runningDropoutTotal = 0;
 
+        const today = new Date();
+        today.setHours(23, 59, 59, 999);
+
         for (let r = tableHeaderRowIndex + 1; r < matrix.length; r++) {
           const row = matrix[r];
           if (!row || !row.some(c => c && c.toString().trim() !== '')) continue;
@@ -367,6 +370,13 @@
 
           if (dateColIdx !== -1 && row[dateColIdx] && row[dateColIdx].toString().trim() !== '') {
             const dateStr = row[dateColIdx].toString().trim();
+            const rowDate = new Date(dateStr);
+
+            // Filter out future dates that haven't occurred yet
+            if (!isNaN(rowDate.getTime()) && rowDate > today) {
+              continue;
+            }
+
             runningCalledTotal += dailyCalled;
             runningDropoutTotal += dailyDropout;
 
